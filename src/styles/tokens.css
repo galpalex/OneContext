@@ -1,0 +1,133 @@
+/* ==========================================================================
+   OneContext design tokens
+   Semantic roles only - components must never hard-code a raw colour.
+   Blue = primary action, green = positive, orange = attention,
+   red = critical/error, gray = neutral & future state.
+   ========================================================================== */
+
+:root {
+  /* --- Brand / primary ------------------------------------------------- */
+  --oc-primary-050: #eff5ff;
+  --oc-primary-100: #dbe8fe;
+  --oc-primary-200: #bfd6fe;
+  --oc-primary-500: #3b76f6;
+  --oc-primary-600: #2563eb;
+  --oc-primary-700: #1d4ed8;
+  --oc-primary-800: #1b3fae;
+
+  /* --- Positive -------------------------------------------------------- */
+  --oc-positive-050: #ecfdf3;
+  --oc-positive-200: #a7f3c6;
+  --oc-positive-600: #16a34a;
+  --oc-positive-700: #15803d;
+
+  /* --- Attention ------------------------------------------------------- */
+  --oc-attention-050: #fff7ed;
+  --oc-attention-200: #fed7aa;
+  --oc-attention-600: #ea580c;
+  --oc-attention-700: #c2410c;
+
+  /* --- Critical -------------------------------------------------------- */
+  --oc-critical-050: #fef2f2;
+  --oc-critical-200: #fecaca;
+  --oc-critical-600: #dc2626;
+  --oc-critical-700: #b91c1c;
+
+  /* --- Neutrals -------------------------------------------------------- */
+  --oc-neutral-000: #ffffff;
+  --oc-neutral-025: #fafbfc;
+  --oc-neutral-050: #f5f6f8;
+  --oc-neutral-100: #eceef2;
+  --oc-neutral-200: #dfe3e9;
+  --oc-neutral-300: #c6ccd6;
+  --oc-neutral-400: #98a1b0;
+  --oc-neutral-500: #6b7484;
+  --oc-neutral-600: #4f5867;
+  --oc-neutral-700: #39414e;
+  --oc-neutral-900: #171c25;
+
+  /* --- Applied surfaces ------------------------------------------------ */
+  --oc-bg: var(--oc-neutral-050);
+  --oc-surface: var(--oc-neutral-000);
+  --oc-surface-sunken: var(--oc-neutral-025);
+  --oc-border: var(--oc-neutral-200);
+  --oc-border-strong: var(--oc-neutral-300);
+
+  /* --- Applied text ---------------------------------------------------- */
+  --oc-text: var(--oc-neutral-900);
+  --oc-text-muted: var(--oc-neutral-500);
+  --oc-text-faint: var(--oc-neutral-400);
+  --oc-text-on-accent: var(--oc-neutral-000);
+
+  /* --- Typography ------------------------------------------------------ */
+  --oc-font-sans: 'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', Arial,
+    'Noto Sans', sans-serif;
+  --oc-text-2xs: 0.6875rem; /* 11px - dense metadata */
+  --oc-text-xs: 0.75rem; /* 12px - labels */
+  --oc-text-sm: 0.8125rem; /* 13px - table / secondary */
+  --oc-text-base: 0.875rem; /* 14px - body (dense CRM default) */
+  --oc-text-md: 1rem; /* 16px - section titles */
+  --oc-text-lg: 1.125rem; /* 18px */
+  --oc-text-xl: 1.375rem; /* 22px - page title */
+  --oc-text-2xl: 1.75rem; /* 28px - KPI value */
+  --oc-text-3xl: 2.125rem; /* 34px - login title */
+
+  --oc-weight-regular: 400;
+  --oc-weight-medium: 500;
+  --oc-weight-semibold: 600;
+  --oc-weight-bold: 700;
+
+  --oc-leading-tight: 1.2;
+  --oc-leading-normal: 1.45;
+  --oc-leading-relaxed: 1.6;
+
+  /* --- Spacing (4px base) ---------------------------------------------- */
+  --oc-space-1: 0.25rem;
+  --oc-space-2: 0.5rem;
+  --oc-space-3: 0.75rem;
+  --oc-space-4: 1rem;
+  --oc-space-5: 1.25rem;
+  --oc-space-6: 1.5rem;
+  --oc-space-8: 2rem;
+  --oc-space-10: 2.5rem;
+  --oc-space-12: 3rem;
+
+  /* --- Radii ----------------------------------------------------------- */
+  --oc-radius-sm: 6px;
+  --oc-radius-md: 10px;
+  --oc-radius-lg: 14px; /* cards: 12-16px per design guidelines */
+  --oc-radius-pill: 999px;
+
+  /* --- Elevation (restrained) ------------------------------------------ */
+  --oc-shadow-xs: 0 1px 2px rgb(23 28 37 / 6%);
+  --oc-shadow-sm: 0 1px 3px rgb(23 28 37 / 8%), 0 1px 2px rgb(23 28 37 / 4%);
+  --oc-shadow-md: 0 6px 16px rgb(23 28 37 / 8%), 0 2px 6px rgb(23 28 37 / 5%);
+  --oc-shadow-lg: 0 18px 40px rgb(23 28 37 / 16%);
+
+  /* --- Focus ----------------------------------------------------------- */
+  --oc-focus-ring: 0 0 0 2px var(--oc-neutral-000), 0 0 0 4px var(--oc-primary-600);
+
+  /* --- Layout ---------------------------------------------------------- */
+  --oc-topbar-height: 56px;
+  --oc-sidenav-width: 224px;
+  --oc-context-rail-width: 300px; /* 280-320px */
+  --oc-ai-rail-width: 348px; /* 320-380px */
+  --oc-content-max: 1680px;
+
+  /* --- Motion ---------------------------------------------------------- */
+  --oc-transition-fast: 120ms ease;
+  --oc-transition-base: 180ms ease;
+
+  /* --- Channel accents (used from Day 2 onward, defined once here) ------ */
+  --oc-channel-web: var(--oc-primary-600);
+  --oc-channel-whatsapp: var(--oc-positive-600);
+  --oc-channel-email: var(--oc-attention-600);
+  --oc-channel-phone: #7c3aed;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --oc-transition-fast: 0ms;
+    --oc-transition-base: 0ms;
+  }
+}

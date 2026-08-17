@@ -1,0 +1,147 @@
+/* ==========================================================================
+   OneContext global base
+   ========================================================================== */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--oc-bg);
+  color: var(--oc-text);
+  font-family: var(--oc-font-sans);
+  font-size: var(--oc-text-base);
+  line-height: var(--oc-leading-normal);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  margin: 0;
+  line-height: var(--oc-leading-tight);
+  font-weight: var(--oc-weight-semibold);
+  color: var(--oc-text);
+}
+
+h1 {
+  font-size: var(--oc-text-xl);
+}
+h2 {
+  font-size: var(--oc-text-md);
+}
+h3 {
+  font-size: var(--oc-text-base);
+}
+
+p {
+  margin: 0;
+}
+
+ul,
+ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+a {
+  color: var(--oc-primary-700);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+}
+
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+svg {
+  flex: none;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Keyboard focus must always be visible. */
+:focus-visible {
+  outline: none;
+  box-shadow: var(--oc-focus-ring);
+  border-radius: var(--oc-radius-sm);
+}
+
+/* --- Shared helpers ------------------------------------------------------ */
+
+.oc-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.oc-label {
+  display: block;
+  font-size: var(--oc-text-xs);
+  font-weight: var(--oc-weight-semibold);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--oc-text-muted);
+}
+
+.oc-meta {
+  font-size: var(--oc-text-sm);
+  color: var(--oc-text-muted);
+}
+
+/* Honest placeholder for a metric with no stored data behind it. */
+.oc-na {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--oc-space-1);
+  font-size: var(--oc-text-sm);
+  font-weight: var(--oc-weight-medium);
+  color: var(--oc-text-faint);
+  font-style: italic;
+}
+
+.oc-skip-link {
+  position: absolute;
+  left: var(--oc-space-4);
+  top: -3rem;
+  z-index: 100;
+  padding: var(--oc-space-2) var(--oc-space-4);
+  background: var(--oc-primary-700);
+  color: var(--oc-text-on-accent);
+  border-radius: var(--oc-radius-sm);
+  transition: top var(--oc-transition-fast);
+}
+
+.oc-skip-link:focus {
+  top: var(--oc-space-3);
+}
