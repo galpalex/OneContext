@@ -9,6 +9,9 @@ dist-ssr
 .env.local
 .env.*.local
 
+# Third-party design reference: used locally for layout only, not redistributed
+reference image.png
+
 # Editor / OS
 .DS_Store
 Thumbs.db
