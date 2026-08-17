@@ -18,39 +18,43 @@ Get a secure, navigable OneContext product shell with real Supabase data.
 
 ### Tasks
 
-- [ ] Create React + Vite + TypeScript project.
-- [ ] Install Supabase client and React Router.
-- [ ] Create Supabase project.
-- [ ] Create tables from `FEATURESPEC.md`.
-- [ ] Add indexes on `user_id`, `customer_id`, `occurred_at`.
-- [ ] Enable RLS on all user-owned tables.
-- [ ] Add RLS policies using `auth.uid() = user_id`.
-- [ ] Enable Google OAuth in Supabase.
-- [ ] Add local environment variables.
-- [ ] Create Supabase client module.
-- [ ] Implement auth hook and auth state listener.
-- [ ] Implement OneContext Login screen.
-- [ ] Implement protected OneContext application shell.
-- [ ] Implement Customers list with search and empty state.
-- [ ] Implement Create customer form.
-- [ ] Implement OneContext customer workspace header and lifecycle bar.
-- [ ] Add design tokens and base layout matching the approved visual direction.
+- [x] Create React + Vite + TypeScript project.
+- [x] Install Supabase client and React Router.
+- [x] Create Supabase project.
+- [x] Create tables from `FEATURESPEC.md`.
+- [x] Add indexes on `user_id`, `customer_id`, `occurred_at`.
+- [x] Enable RLS on all user-owned tables.
+- [x] Add RLS policies using `auth.uid() = user_id`.
+- [x] Enable Google OAuth in Supabase.
+- [x] Add local environment variables.
+- [x] Create Supabase client module.
+- [x] Implement auth hook and auth state listener.
+- [x] Implement OneContext Login screen.
+- [x] Implement protected OneContext application shell.
+- [x] Implement Customers list with search and empty state.
+- [x] Implement Create customer form.
+- [x] Implement OneContext customer workspace header and lifecycle bar.
+- [x] Add design tokens and base layout matching the approved visual direction.
 
 ### Day 1 verification
 
-- [ ] `npm run build` passes.
-- [ ] Google login works locally.
-- [ ] A user sees only their own customers.
-- [ ] Customer creation stores the authenticated `user_id`.
-- [ ] Direct access to another user's customer is blocked by RLS.
+- [x] `npm run build` passes. — `tsc --noEmit` clean, 103 modules, 757 ms.
+- [x] Google login works locally. — signed in as a Google account; `/auth/v1/settings` reports `external.google = true`.
+- [x] A user sees only their own customers. — verified with two accounts.
+- [x] Customer creation stores the authenticated `user_id`. — browser sends no `user_id`; Postgres fills `default auth.uid()`.
+- [x] Direct access to another user's customer is blocked by RLS. — foreign UUID renders "Customer not found"; anonymous insert rejected with `42501`.
 
 ### Day 1 evidence
 
-- Screenshot: OneContext Login.
-- Screenshot: Customers empty state.
-- Screenshot: Customer list with a seeded/demo customer.
-- Screenshot: OneContext customer workspace header.
-- Commit/PR reference.
+See [`docs/evidence/day1/`](docs/evidence/day1/).
+
+- [x] Screenshot: Customers list after Google sign-in — `1 land on customers and the top bar shows your email.png`.
+- [x] Screenshot: Customer list with the create-success banner — `green customer created.png`.
+- [x] Screenshot: OneContext customer workspace header, lifecycle bar and KPI cards — `customer overview.png`.
+- [x] Screenshot: RLS blocking another account's customer — `rls validation customer not found.png`.
+- [x] Screenshot: Form validation states — `validation customer name.png`, `email validation.png`.
+- [ ] Screenshot: Customers empty state — not captured; the first account already had data.
+- [ ] Commit/PR reference — local commit only, no remote configured yet.
 
 ## Day 2 — Omnichannel timeline and CRM workflow
 
