@@ -8,6 +8,7 @@ Captured 2026-08-17 at ~1910px width.
 | `1 land on customers and the top bar shows your email.png` | Google sign-in succeeded (account email in the top bar); customers list renders; the four columns that depend on channel events read **Not available**, not `0` |
 | `green customer created.png` | Create-customer success state — green confirmation banner, new row present, count updated to 2 customers |
 | `customer overview.png` | Customer workspace: three zones, header, lifecycle bar with **New lead** current, `Days in funnel` / `Days at current stage` computed from stored data while the other four KPIs read **Not available**, OneContext AI rail with its disclaimer |
+| `customer overview fixed.png` | Current state of the same workspace after the contact-method contrast fix: stored methods (phone, email) render blue with a solid border, absent ones (WhatsApp, Web) render gray with a dashed border. Also shows the Activity timeline empty state and the full context rail |
 | `rls validation customer not found.png` | Opening another account's customer UUID renders "Customer not found" — RLS blocks cross-account reads |
 | `validation customer name.png` | Required-field validation blocks submission with an empty name |
 | `email validation.png` | Email format validation rejects `ccc` with an inline message |

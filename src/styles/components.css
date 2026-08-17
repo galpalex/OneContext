@@ -1172,27 +1172,36 @@
   margin-top: var(--oc-space-2);
 }
 
+/* Stored contact method: tinted and bordered so it reads as an actionable link. */
 .oc-contact-method {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 36px;
   height: 30px;
-  border: 1px solid var(--oc-border);
+  border: 1px solid var(--oc-primary-200);
   border-radius: var(--oc-radius-md);
-  background: var(--oc-surface);
-  color: var(--oc-neutral-600);
+  background: var(--oc-primary-050);
+  color: var(--oc-primary-700);
   text-decoration: none;
+  transition: background var(--oc-transition-fast), border-color var(--oc-transition-fast);
 }
 
 .oc-contact-method:hover {
-  background: var(--oc-neutral-050);
+  background: var(--oc-primary-100);
+  border-color: var(--oc-primary-500);
   text-decoration: none;
 }
 
+/*
+ * Missing contact method. The dashed border carries the "no value stored"
+ * meaning structurally, so the distinction does not rest on colour alone.
+ */
 .oc-contact-method.is-empty {
-  color: var(--oc-neutral-300);
-  background: var(--oc-neutral-025);
+  border-style: dashed;
+  border-color: var(--oc-border-strong);
+  background: var(--oc-neutral-050);
+  color: var(--oc-neutral-500);
   cursor: not-allowed;
 }
 
