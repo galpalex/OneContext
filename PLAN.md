@@ -54,7 +54,7 @@ See [`docs/evidence/day1/`](docs/evidence/day1/).
 - [x] Screenshot: RLS blocking another account's customer — `rls validation customer not found.png`.
 - [x] Screenshot: Form validation states — `validation customer name.png`, `email validation.png`.
 - [x] Customers empty state — verified in the browser: an account with no customers showed "No customers yet" with the Create customer call to action. No screenshot artifact; the account held data by the time screenshots were taken.
-- [ ] Commit/PR reference — local commits only (`b5779f0`, `c30e34f`, `ed5b549`), no remote configured yet.
+- [x] Commit/PR reference — pushed to [github.com/galpalex/OneContext](https://github.com/galpalex/OneContext), branch `main`, commit `b790944`.
 
 ## Day 2 — Omnichannel timeline and CRM workflow
 
