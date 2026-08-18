@@ -124,7 +124,7 @@ Turn customer history into a safe, structured and user-confirmed next action thr
 - [x] Add explicit `Create follow-up` confirmation from recommendation.
 - [x] Add source references to the AI result.
 - [x] Add seed/demo data for a compelling walkthrough.
-- [ ] Run security review for RLS, env variables and API access.
+- [x] Run security review for RLS, env variables and API access. — no critical or high findings; anonymous read and write blocked on all five tables, phone RPC rejected, key absent from the bundle, production dependencies clean. Two abuse controls added: 20 insights per user per hour, and a Vercel firewall rule at 30 requests per minute per IP, both verified firing.
 - [x] Run production build.
 - [x] Deploy frontend and function to Vercel.
 - [x] Configure Supabase OAuth redirect URLs for local and production.
@@ -147,7 +147,7 @@ See [`docs/evidence/day3/`](docs/evidence/day3/).
 - [x] Screenshot: Source events supporting the summary — `ai suggestion.png` lists six, `noa summary.png` one.
 - [x] Screenshot: Confirmed follow-up created from AI recommendation — `follow up ai noa.png` (the form) and `ai follow up noa.png` (the stored task, badged From OneContext AI).
 - [x] Public Vercel URL — https://one-context.vercel.app.
-- [ ] Short README walkthrough.
+- [x] Short README walkthrough — [README.md](README.md): problem, stack, how it works, screenshots, setup, security.
 - [ ] Final commit/PR reference.
 
 ## Demo walkthrough
