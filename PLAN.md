@@ -84,9 +84,9 @@ Make the OneContext customer workspace useful: every channel produces a real eve
 
 ### Day 2 verification
 
-- [ ] Every channel creates an event owned by the current user.
-- [ ] Timeline displays events from all four channels.
-- [ ] Phone submission creates both a phone event and an agent note.
+- [x] Every channel creates an event owned by the current user. — web, whatsapp, email and phone all verified in the browser.
+- [x] Timeline displays events from all four channels. — `phone.png`; engagement reads Web 2 / WhatsApp 1 / Email 1 / Phone 1.
+- [x] Phone submission creates both a phone event and an agent note. — the Resolved badge on the phone entry can only come from the linked `agent_notes` row.
 - [x] Metrics change when new events are added. — Total interactions went 1 → 2, trend gained a second bar.
 - [ ] Empty and error states are visible and usable.
 - [x] No fake metrics are shown when data is missing. — Open follow-ups still reads "Not available" while Total interactions shows a measured 0.
@@ -97,8 +97,8 @@ See [`docs/evidence/day2/`](docs/evidence/day2/).
 
 - [x] Slice 2, WhatsApp and Email — `whatsapp inbound.png`, `whatsapp logged.png`, `email outbound form.png`, `email logged, three channels.png`.
 - [x] Slice 1, Web channel — `add event.png`, `event logged.png`, `event logged bottom.png`, `add event future validation.png`, `2 events, earlier is at top.png`.
-- [ ] Timeline with all four channels — Web, WhatsApp and Email done; Phone pending.
-- [ ] Phone note showing customer-service context.
+- [x] Timeline with all four channels — `phone.png`.
+- [x] Phone note showing customer-service context — `phone.png`, with "What the customer wanted" above "Outcome" and the note status shown as a badge.
 - [ ] Next steps area.
 - [x] Commit/PR reference — `b7e4f3e` on [github.com/galpalex/OneContext](https://github.com/galpalex/OneContext).
 

@@ -1,8 +1,19 @@
-# Day 2 evidence — slices 1 and 2
+# Day 2 evidence — slices 1 to 3
 
 Screenshots backing the Day 2 gate in [PLAN.md](../../../PLAN.md), captured
-2026-08-18. Slice 1 covers the Web channel, slice 2 adds WhatsApp and Email.
-Phone follows in slice 3.
+2026-08-18. Slice 1 covers the Web channel, slice 2 adds WhatsApp and Email, and
+slice 3 adds Phone with the merged timeline.
+
+## Slice 3 — Phone and the merged timeline
+
+| File | What it proves |
+| --- | --- |
+| `phone.png` | A phone call rendered as **one** timeline entry, not two: purple dot, Outbound badge, and a **Resolved** status badge. That status exists only on the `agent_notes` row, so its presence is direct evidence both rows were written and linked - a missing note would show no status at all. "What the customer wanted" appears above "Outcome", confirming the explicit key order, since Postgres jsonb sorts keys by length and would otherwise put the outcome first. Engagement reads `Web 2 / WhatsApp 1 / Email 1 / Phone 1`, so all four channels are live |
+
+Verified against the live project separately: calling `log_phone_interaction`
+anonymously is rejected with `42501 new row violates row-level security policy`.
+The function is `SECURITY INVOKER`, so RLS governs both of its inserts; a
+`SECURITY DEFINER` function would have bypassed RLS and allowed that call.
 
 ## Slice 2 — WhatsApp and Email
 
