@@ -110,43 +110,45 @@ Turn customer history into a safe, structured and user-confirmed next action thr
 
 ### Tasks
 
-- [ ] Create Vercel serverless function `/api/insight`.
-- [ ] Verify authenticated Supabase user server-side.
-- [ ] Retrieve customer data using the authenticated user, not client-supplied ownership.
-- [ ] Build compact prompt with customer context, events and notes.
-- [ ] Call Gemini using server-only `GEMINI_API_KEY`.
-- [ ] Require JSON output matching the OneContext AI contract.
-- [ ] Validate the response before returning it.
-- [ ] Save insight with source event IDs.
-- [ ] Build right-side OneContext AI assistant panel.
-- [ ] Add prompt shortcuts: summarize history, identify risks, suggest next action.
-- [ ] Add loading, error and retry states.
-- [ ] Add explicit `Create follow-up` confirmation from recommendation.
-- [ ] Add source references to the AI result.
-- [ ] Add seed/demo data for a compelling walkthrough.
+- [x] Create Vercel serverless function `/api/insight`.
+- [x] Verify authenticated Supabase user server-side.
+- [x] Retrieve customer data using the authenticated user, not client-supplied ownership.
+- [x] Build compact prompt with customer context, events and notes.
+- [x] Call Gemini using server-only `GEMINI_API_KEY`.
+- [x] Require JSON output matching the OneContext AI contract.
+- [x] Validate the response before returning it.
+- [x] Save insight with source event IDs.
+- [x] Build right-side OneContext AI assistant panel.
+- [x] Add prompt shortcuts: summarize history, identify risks, suggest next action.
+- [x] Add loading, error and retry states.
+- [x] Add explicit `Create follow-up` confirmation from recommendation.
+- [x] Add source references to the AI result.
+- [x] Add seed/demo data for a compelling walkthrough.
 - [ ] Run security review for RLS, env variables and API access.
-- [ ] Run production build.
-- [ ] Deploy frontend and function to Vercel.
-- [ ] Configure Supabase OAuth redirect URLs for local and production.
-- [ ] Add Vercel environment variables.
+- [x] Run production build.
+- [x] Deploy frontend and function to Vercel.
+- [x] Configure Supabase OAuth redirect URLs for local and production.
+- [x] Add Vercel environment variables.
 
 ### Day 3 verification
 
-- [ ] OneContext AI result contains summary, topics, risks and next action.
-- [ ] OneContext AI does not expose records belonging to another user.
-- [ ] Invalid or failed AI responses do not corrupt CRM data.
-- [ ] Follow-up is created only after explicit user action.
-- [ ] Production URL supports login and the full demo flow.
-- [ ] `npm run build` passes in the deployment environment.
+- [x] OneContext AI result contains summary, topics, risks and next action. — plus confidence, generation time and source references.
+- [x] OneContext AI does not expose records belonging to another user. — reads run under the caller's token so RLS applies; a foreign customer id returns 404, covered by a function test.
+- [x] Invalid or failed AI responses do not corrupt CRM data. — nothing is persisted unless validation passes; tests cover unusable JSON, non-JSON, an error status and a timeout.
+- [x] Follow-up is created only after explicit user action. — `ai follow up noa.png`; the From OneContext AI badge can only come from the confirmed form.
+- [x] Production URL supports login and the full demo flow. — https://one-context.vercel.app, Google sign-in verified.
+- [x] `npm run build` passes in the deployment environment. — typecheck on both projects plus 79 tests run before every deploy.
 
 ### Day 3 evidence
 
-- Screenshot: OneContext AI panel with customer-specific summary.
-- Screenshot: Source events supporting the summary.
-- Screenshot: Confirmed follow-up created from AI recommendation.
-- Public Vercel URL.
-- Short README walkthrough.
-- Final commit/PR reference.
+See [`docs/evidence/day3/`](docs/evidence/day3/).
+
+- [x] Screenshot: OneContext AI panel with customer-specific summary — `ai suggestion.png`, `noa summary.png`.
+- [x] Screenshot: Source events supporting the summary — `ai suggestion.png` lists six, `noa summary.png` one.
+- [x] Screenshot: Confirmed follow-up created from AI recommendation — `follow up ai noa.png` (the form) and `ai follow up noa.png` (the stored task, badged From OneContext AI).
+- [x] Public Vercel URL — https://one-context.vercel.app.
+- [ ] Short README walkthrough.
+- [ ] Final commit/PR reference.
 
 ## Demo walkthrough
 

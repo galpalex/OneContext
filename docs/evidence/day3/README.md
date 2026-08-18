@@ -42,6 +42,21 @@ would do the same. Fixed: the client now sends its IANA timezone and the functio
 formats every timestamp into it before prompting, with a UTC fallback for an
 unusable value. Two tests pin it.
 
+## The confirmation path, closed
+
+| File | What it proves |
+| --- | --- |
+| `ai follow up noa.png` | The recommendation became a stored task and is labelled **From OneContext AI**. That badge renders only for `source = 'ai_recommendation'`, so the row can only have been written through the confirmation form - the AI never reaches the database itself. `Open follow-ups` moved to 1 with "Awaiting action", and Complete and Dismiss are available |
+
+The same screenshot confirms two later fixes:
+
+- **Confidence is now `low`** for Noa's single interaction, where it previously read
+  `high`. Notably there is no "confidence was limited" note, which is correct: the
+  tightened prompt returned `low` unprompted, so the deterministic ceiling never had
+  to fire. The cap remains as a backstop rather than the mechanism.
+- **The dates agree.** The summary says "18 Aug 2026 at 01:44" and Last contact says
+  "Aug 18, 2026, 01:44 AM". Before the timezone fix these read 17 and 18.
+
 ## A deployment failure worth recording
 
 | File | What it shows |
