@@ -7,10 +7,10 @@
   "scripts": {
     "dev": "vite",
     "dev:api": "vercel dev",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.api.json --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "build": "tsc --noEmit && vitest run && vite build",
+    "build": "tsc --noEmit && tsc -p tsconfig.api.json --noEmit && vitest run && vite build",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -20,8 +20,10 @@
     "react-router-dom": "^7.18.2"
   },
   "devDependencies": {
+    "@types/node": "^26.2.0",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.4",
+    "@vercel/node": "^5.10.1",
     "@vitejs/plugin-react": "^6.0.5",
     "typescript": "^7.0.2",
     "vite": "^8.2.1",
