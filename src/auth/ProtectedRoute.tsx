@@ -1,7 +1,8 @@
+import { Suspense } from 'react'
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from './useAuth'
 import { AppShell } from '../components/shell/AppShell'
-import { FullPageLoader } from '../components/states/FullPageLoader'
+import { FullPageLoader, InlineLoader } from '../components/states/FullPageLoader'
 
 /**
  * Gate for every authenticated route. While the session is being restored we
@@ -22,7 +23,10 @@ export function ProtectedRoute() {
 
   return (
     <AppShell>
-      <Outlet />
+      {/* Inside the shell: a lazily loaded page must not blank the top bar. */}
+      <Suspense fallback={<InlineLoader label="Loading" />}>
+        <Outlet />
+      </Suspense>
     </AppShell>
   )
 }
