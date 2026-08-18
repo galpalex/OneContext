@@ -27,6 +27,21 @@ const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MO
 /** Cold starts have been observed near 16s, so allow room but still bound it. */
 const GEMINI_TIMEOUT_MS = 25_000
 
+/**
+ * Per-user generation limit.
+ *
+ * Signup is open by design - GOAL.md requires that any Google account can sign in -
+ * so a valid session is not evidence of good intent, and every generation spends
+ * Gemini quota. Twenty an hour is far above real use (five customers, three
+ * questions each, is fifteen) while bounding what one account can cost.
+ *
+ * Two limitations, deliberately accepted: it counts stored insights, so a
+ * generation that fails validation costs a call without counting; and it is
+ * per-user, so it bounds any one actor rather than the aggregate.
+ */
+const INSIGHTS_PER_HOUR = 20
+const ONE_HOUR_MS = 3_600_000
+
 /** Enough history to reason over without an unbounded prompt. */
 const MAX_EVENTS = 40
 const MAX_NOTES = 20
@@ -182,6 +197,30 @@ export default async function handler(request: VercelRequest, response: VercelRe
   const { data: userData, error: userError } = await supabase.auth.getUser()
   if (userError || !userData.user) {
     return response.status(401).json({ error: 'Your session is no longer valid.' })
+  }
+
+  /*
+   * Rate limit before doing any work, so a limited request costs neither the
+   * customer reads nor a model call.
+   *
+   * No user_id filter is needed: this count runs under the caller's token, so RLS
+   * scopes it to their own rows - the same property the rest of the app relies on.
+   */
+  const { count: recentCount, error: countError } = await supabase
+    .from('ai_insights')
+    .select('id', { count: 'exact', head: true })
+    .gte('created_at', new Date(Date.now() - ONE_HOUR_MS).toISOString())
+
+  if (countError) {
+    console.error('insight: rate-limit check failed', countError.message)
+    return response.status(500).json({ error: 'Insight generation is unavailable.' })
+  }
+
+  if ((recentCount ?? 0) >= INSIGHTS_PER_HOUR) {
+    response.setHeader('Retry-After', '600')
+    return response.status(429).json({
+      error: `You have generated ${recentCount} insights in the last hour, which is the limit. Try again shortly - nothing was changed.`,
+    })
   }
 
   const [customerResult, eventsResult, notesResult, followUpsResult] = await Promise.all([

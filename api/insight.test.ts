@@ -13,21 +13,46 @@ interface TableResult {
   error: { message: string } | null
 }
 
+/** Answers `select(..., { count: 'exact', head: true })`. */
+interface CountResult {
+  count: number
+  error: { message: string } | null
+}
+
 const insertCalls: Array<Record<string, unknown>> = []
 let tableResults: Record<string, TableResult>
+let countResults: Record<string, CountResult>
 let getUserResult: { data: { user: { id: string } | null }; error: { message: string } | null }
 
-/** Chainable stand-in for a PostgrestFilterBuilder, thenable at any depth. */
-function builder(result: TableResult, onInsert?: (payload: Record<string, unknown>) => void) {
+/**
+ * Chainable stand-in for a PostgrestFilterBuilder, thenable at any depth.
+ *
+ * A row query and a count query hit the same table, so the builder tracks which
+ * one this chain is: select(..., { count }) resolves the count result, everything
+ * else resolves rows. Sharing one result made the rate-limit check and the insert
+ * indistinguishable.
+ */
+function builder(
+  rows: TableResult,
+  counts: CountResult,
+  onInsert?: (payload: Record<string, unknown>) => void,
+) {
   const chain: Record<string, unknown> = {}
-  for (const method of ['select', 'eq', 'order', 'limit', 'maybeSingle', 'single']) {
+  let counting = false
+
+  for (const method of ['eq', 'order', 'limit', 'gte', 'maybeSingle', 'single']) {
     chain[method] = vi.fn(() => chain)
   }
+  chain['select'] = vi.fn((_columns?: string, options?: { count?: string }) => {
+    if (options?.count) counting = true
+    return chain
+  })
   chain['insert'] = vi.fn((payload: Record<string, unknown>) => {
     onInsert?.(payload)
     return chain
   })
-  chain['then'] = (resolve: (value: TableResult) => unknown) => Promise.resolve(result).then(resolve)
+  chain['then'] = (resolve: (value: TableResult | CountResult) => unknown) =>
+    Promise.resolve(counting ? counts : rows).then(resolve)
   return chain
 }
 
@@ -35,9 +60,13 @@ vi.mock('@supabase/supabase-js', () => ({
   createClient: vi.fn(() => ({
     auth: { getUser: vi.fn(async () => getUserResult) },
     from: vi.fn((table: string) =>
-      builder(tableResults[table] ?? { data: null, error: null }, (payload) => {
-        if (table === 'ai_insights') insertCalls.push(payload)
-      }),
+      builder(
+        tableResults[table] ?? { data: null, error: null },
+        countResults[table] ?? { count: 0, error: null },
+        (payload) => {
+          if (table === 'ai_insights') insertCalls.push(payload)
+        },
+      ),
     ),
   })),
 }))
@@ -110,6 +139,7 @@ beforeEach(() => {
     follow_ups: { data: [], error: null },
     ai_insights: { data: { id: 'ins-1', created_at: '2026-08-19T00:00:00Z' }, error: null },
   }
+  countResults = { ai_insights: { count: 0, error: null } }
   process.env['SUPABASE_URL'] = 'https://project.supabase.co'
   process.env['SUPABASE_ANON_KEY'] = 'anon'
   process.env['GEMINI_API_KEY'] = 'k3y-Zx91-do-not-log'
@@ -256,6 +286,41 @@ describe('POST /api/insight', () => {
     const prompt = String(init.body)
     expect(prompt).toContain('17 Aug 2026')
     expect(prompt).toContain('UTC')
+  })
+
+  it('refuses once the hourly limit is reached, before spending anything', async () => {
+    countResults['ai_insights'] = { count: 20, error: null }
+
+    const response = mockResponse()
+    await handler(request(), response as never)
+
+    expect(response.statusCode).toBe(429)
+    expect(response.headers['retry-after']).toBe('600')
+    // The point of checking early: no model call and no reads were paid for.
+    expect(fetch).not.toHaveBeenCalled()
+    expect(insertCalls).toHaveLength(0)
+    expect(String((response.body as { error: string }).error)).toContain('nothing was changed')
+  })
+
+  it('allows a request that is one under the limit', async () => {
+    countResults['ai_insights'] = { count: 19, error: null }
+
+    const response = mockResponse()
+    await handler(request(), response as never)
+
+    expect(response.statusCode).toBe(200)
+    expect(fetch).toHaveBeenCalled()
+  })
+
+  it('fails closed if the limit check itself errors', async () => {
+    // Better to refuse than to let an unbounded number of calls through.
+    countResults['ai_insights'] = { count: 0, error: { message: 'count failed' } }
+
+    const response = mockResponse()
+    await handler(request(), response as never)
+
+    expect(response.statusCode).toBe(500)
+    expect(fetch).not.toHaveBeenCalled()
   })
 
   it('lowers a confidence the stored history cannot support, and stores the lowered value', async () => {
