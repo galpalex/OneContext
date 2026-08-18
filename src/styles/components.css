@@ -1539,3 +1539,12 @@
   font-size: var(--oc-text-2xs);
   color: var(--oc-text-faint);
 }
+
+/* Marks a channel tab holding unsaved draft input. */
+.oc-chan-tab__dot {
+  width: 6px;
+  height: 6px;
+  margin-left: var(--oc-space-1);
+  border-radius: 50%;
+  background: var(--oc-attention-600);
+}

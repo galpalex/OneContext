@@ -62,14 +62,35 @@ function nowLocalInput(date = new Date()): string {
   return `${day}T${pad(date.getHours())}:${pad(date.getMinutes())}`
 }
 
+interface Draft {
+  type: string
+  direction: Direction
+  subject: string
+  body: string
+  occurredAt: string
+}
+
 type FieldErrors = Partial<Record<'subject' | 'body' | 'occurredAt', string>>
 
 const DEFAULT_TYPE = WEB_EVENT_TYPES[0].value
 
+function emptyDraft(): Draft {
+  return {
+    type: DEFAULT_TYPE,
+    direction: 'inbound',
+    subject: '',
+    body: '',
+    occurredAt: nowLocalInput(),
+  }
+}
+
 /**
- * Logs one interaction on any implemented channel. Every channel writes through
- * the same createChannelEvent path, so ownership is decided by Postgres and RLS
- * rather than by which form was used.
+ * Logs one interaction on any implemented channel.
+ *
+ * Each channel keeps its own draft, so switching tabs never carries text from one
+ * channel into another and never discards what was already typed: come back to a
+ * tab and your input is still there. Drafts live only while the dialog is open -
+ * Cancel discards them, which is what closing a dialog should mean.
  */
 export function AddEventDialog({
   customerId,
@@ -78,33 +99,28 @@ export function AddEventDialog({
   onCreated,
 }: AddEventDialogProps) {
   const [channel, setChannel] = useState<Channel>('web')
-  const [type, setType] = useState<string>(DEFAULT_TYPE)
-  const [direction, setDirection] = useState<Direction>('inbound')
-  const [subject, setSubject] = useState('')
-  const [body, setBody] = useState('')
-  const [occurredAt, setOccurredAt] = useState(nowLocalInput())
+  const [drafts, setDrafts] = useState<Record<Channel, Draft>>(() => ({
+    web: emptyDraft(),
+    whatsapp: emptyDraft(),
+    email: emptyDraft(),
+    phone: emptyDraft(),
+  }))
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
   const shape = SHAPE[channel]
+  const draft = drafts[channel]
 
-  /**
-   * Switching channel starts a genuinely empty form.
-   *
-   * Carrying subject and body across channels let text typed for one channel be
-   * submitted as another, which is worse than losing a draft. Re-clicking the
-   * channel already selected is ignored, so a stray click cannot wipe input.
-   */
+  function update<K extends keyof Draft>(key: K, value: Draft[K]) {
+    setDrafts((current) => ({ ...current, [channel]: { ...current[channel], [key]: value } }))
+  }
+
   function selectChannel(next: Channel) {
     if (next === channel) return
 
     setChannel(next)
-    setType(DEFAULT_TYPE)
-    setDirection('inbound')
-    setSubject('')
-    setBody('')
-    setOccurredAt(nowLocalInput())
+    // Validation messages are transient feedback, not part of the draft.
     setFieldErrors({})
     setSubmitError(null)
   }
@@ -112,15 +128,15 @@ export function AddEventDialog({
   function validate(): FieldErrors {
     const errors: FieldErrors = {}
 
-    if (shape.subject && subject.trim().length === 0) {
+    if (shape.subject && draft.subject.trim().length === 0) {
       errors.subject = 'Enter a short subject.'
     }
 
-    if (body.trim().length === 0) {
+    if (draft.body.trim().length === 0) {
       errors.body = `Enter the ${shape.bodyLabel.toLowerCase()}.`
     }
 
-    const when = new Date(occurredAt)
+    const when = new Date(draft.occurredAt)
     if (Number.isNaN(when.getTime())) {
       errors.occurredAt = 'Enter a valid date and time.'
     } else if (when.getTime() > Date.now() + 60_000) {
@@ -146,11 +162,12 @@ export function AddEventDialog({
         channel,
         // FEATURESPEC gives `type` to the web channel only; the others are
         // distinguished by direction, so no taxonomy is invented for them.
-        type: shape.type ? type : null,
-        direction: shape.direction ? direction : 'inbound',
-        subject: shape.subject ? subject.trim() : null,
-        content: { [contentKey(channel)]: body.trim() },
-        occurred_at: new Date(occurredAt).toISOString(),
+        type: shape.type ? draft.type : null,
+        // Web has no direction control, so it can only ever be inbound.
+        direction: shape.direction ? draft.direction : 'inbound',
+        subject: shape.subject ? draft.subject.trim() : null,
+        content: { [contentKey(channel)]: draft.body.trim() },
+        occurred_at: new Date(draft.occurredAt).toISOString(),
       })
 
       onCreated(created)
@@ -187,6 +204,10 @@ export function AddEventDialog({
       <div className="oc-chan-tabs" role="tablist" aria-label="Channel">
         {CHANNELS.map((option) => {
           const enabled = ENABLED.includes(option.value)
+          const hasDraft =
+            drafts[option.value].subject.trim().length > 0 ||
+            drafts[option.value].body.trim().length > 0
+
           return (
             <button
               key={option.value}
@@ -200,6 +221,13 @@ export function AddEventDialog({
             >
               <Icon name={option.icon} size={15} />
               {option.label}
+              {/* Marks a tab holding unsaved input the user can return to. */}
+              {hasDraft && option.value !== channel ? (
+                <>
+                  <span className="oc-chan-tab__dot" aria-hidden="true" />
+                  <span className="oc-visually-hidden">(has unsaved input)</span>
+                </>
+              ) : null}
             </button>
           )
         })}
@@ -222,8 +250,8 @@ export function AddEventDialog({
               <select
                 id="event-type"
                 className="oc-select"
-                value={type}
-                onChange={(changed) => setType(changed.target.value)}
+                value={draft.type}
+                onChange={(changed) => update('type', changed.target.value)}
                 disabled={submitting}
               >
                 {WEB_EVENT_TYPES.map((option) => (
@@ -240,8 +268,8 @@ export function AddEventDialog({
               <select
                 id="event-direction"
                 className="oc-select"
-                value={direction}
-                onChange={(changed) => setDirection(changed.target.value as Direction)}
+                value={draft.direction}
+                onChange={(changed) => update('direction', changed.target.value as Direction)}
                 disabled={submitting}
               >
                 {DIRECTIONS.map((option) => (
@@ -263,8 +291,8 @@ export function AddEventDialog({
               id="event-occurred-at"
               type="datetime-local"
               className="oc-input"
-              value={occurredAt}
-              onChange={(changed) => setOccurredAt(changed.target.value)}
+              value={draft.occurredAt}
+              onChange={(changed) => update('occurredAt', changed.target.value)}
               aria-invalid={Boolean(fieldErrors.occurredAt)}
               aria-describedby={
                 fieldErrors.occurredAt ? 'event-occurred-at-error' : 'event-occurred-at-hint'
@@ -284,8 +312,8 @@ export function AddEventDialog({
               <input
                 id="event-subject"
                 className="oc-input"
-                value={subject}
-                onChange={(changed) => setSubject(changed.target.value)}
+                value={draft.subject}
+                onChange={(changed) => update('subject', changed.target.value)}
                 aria-invalid={Boolean(fieldErrors.subject)}
                 aria-describedby={fieldErrors.subject ? 'event-subject-error' : undefined}
                 autoComplete="off"
@@ -305,8 +333,8 @@ export function AddEventDialog({
             <textarea
               id="event-body"
               className="oc-textarea"
-              value={body}
-              onChange={(changed) => setBody(changed.target.value)}
+              value={draft.body}
+              onChange={(changed) => update('body', changed.target.value)}
               aria-invalid={Boolean(fieldErrors.body)}
               aria-describedby={fieldErrors.body ? 'event-body-error' : 'event-body-hint'}
               rows={5}
