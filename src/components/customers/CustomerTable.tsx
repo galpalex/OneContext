@@ -1,7 +1,8 @@
 import { Link } from 'react-router-dom'
 import type { Customer } from '../../lib/types'
 import { stageLabel, stageTone } from '../../lib/lifecycle'
-import { formatDate, initials } from '../../lib/format'
+import { formatDate } from '../../lib/format'
+import { Avatar } from '../ui/Avatar'
 import { Badge } from '../ui/Badge'
 import { SkeletonRows } from '../states/SkeletonRows'
 
@@ -54,9 +55,7 @@ export function CustomerTable({
               <tr key={customer.id}>
                 <td>
                   <div className="oc-table__primary">
-                    <span className="oc-avatar" aria-hidden="true">
-                      {initials(customer.name)}
-                    </span>
+                    <Avatar name={customer.name} src={customer.avatar_url} />
                     <div>
                       <Link className="oc-table__name" to={`/customers/${customer.id}`}>
                         {customer.name}

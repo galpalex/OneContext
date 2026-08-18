@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" width="96" height="96" role="img" aria-label="Illustrated avatar">
+  <defs><clipPath id="clip-eitan-regev"><circle cx="48" cy="48" r="48"/></clipPath></defs>
+  <g clip-path="url(#clip-eitan-regev)">
+    <rect width="96" height="96" fill="#eef2f6"/>
+    
+    <ellipse cx="48" cy="106" rx="35" ry="32" fill="#37485c"/>
+    <path d="M34 84c4-6 8-9 14-9s10 3 14 9z" fill="#37485c" opacity="0.55"/>
+    <rect x="41" y="57" width="14" height="18" rx="7" fill="#b27a52"/>
+    <ellipse cx="48" cy="45" rx="19" ry="21" fill="#c98d63"/>
+    <ellipse cx="41" cy="45" rx="1.7" ry="2.3" fill="#2b2320"/>
+    <ellipse cx="55" cy="45" rx="1.7" ry="2.3" fill="#2b2320"/>
+    <path d="M44 53c2 2 6 2 8 0" stroke="#2b2320" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+    <path d="M29 42c0-12 8-20 19-20s19 8 19 20c-4-7-10-10-19-10s-15 3-19 10Z" fill="#39332f"/><circle cx="33" cy="33" r="6" fill="#39332f"/><circle cx="44" cy="26" r="7" fill="#39332f"/><circle cx="55" cy="29" r="6" fill="#39332f"/><circle cx="63" cy="36" r="5" fill="#39332f"/>
+  </g>
+</svg>

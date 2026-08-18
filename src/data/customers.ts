@@ -3,7 +3,7 @@ import { DEFAULT_STAGE, isLifecycleStage } from '../lib/lifecycle'
 import type { Customer, NewCustomerInput } from '../lib/types'
 
 const CUSTOMER_COLUMNS =
-  'id, user_id, name, company, email, phone, job_title, lifecycle_stage, stage_changed_at, customer_need, tags, created_at'
+  'id, user_id, name, company, email, phone, job_title, lifecycle_stage, stage_changed_at, customer_need, tags, avatar_url, created_at'
 
 interface RawCustomer {
   id: string
@@ -17,6 +17,7 @@ interface RawCustomer {
   stage_changed_at: string
   customer_need: string | null
   tags: unknown
+  avatar_url: string | null
   created_at: string
 }
 
@@ -39,6 +40,7 @@ function normalize(row: RawCustomer): Customer {
     stage_changed_at: row.stage_changed_at,
     customer_need: row.customer_need,
     tags: toStringArray(row.tags),
+    avatar_url: row.avatar_url,
     created_at: row.created_at,
   }
 }

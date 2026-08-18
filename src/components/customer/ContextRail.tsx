@@ -1,5 +1,5 @@
 import type { Customer } from '../../lib/types'
-import { initials } from '../../lib/format'
+import { Avatar } from '../ui/Avatar'
 import { Badge } from '../ui/Badge'
 import { Card, CardBody, CardHeader } from '../ui/Card'
 import { Icon } from '../ui/Icon'
@@ -40,9 +40,7 @@ export function ContextRail({ customer, ownerEmail }: { customer: Customer; owne
     <>
       <Card>
         <div className="oc-identity">
-          <span className="oc-avatar oc-avatar--xl" aria-hidden="true">
-            {initials(customer.name)}
-          </span>
+          <Avatar name={customer.name} src={customer.avatar_url} size="xl" />
           <p className="oc-identity__name">{customer.name}</p>
           <p className="oc-identity__sub">
             {customer.job_title ?? 'Job title not recorded'}

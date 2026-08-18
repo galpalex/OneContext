@@ -31,6 +31,8 @@ export interface Customer {
   stage_changed_at: string
   customer_need: string | null
   tags: string[]
+  /** Optional image path. The UI falls back to initials when absent. */
+  avatar_url: string | null
   created_at: string
 }
 

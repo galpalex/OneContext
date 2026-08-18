@@ -1830,3 +1830,17 @@
     background: var(--oc-primary-050);
   }
 }
+
+/* Avatar carrying an image rather than initials. */
+.oc-avatar--image {
+  overflow: hidden;
+  background: var(--oc-neutral-100);
+  padding: 0;
+}
+
+.oc-avatar--image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
