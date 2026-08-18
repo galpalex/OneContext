@@ -99,7 +99,7 @@ See [`docs/evidence/day2/`](docs/evidence/day2/).
 - [x] Slice 1, Web channel — `add event.png`, `event logged.png`, `event logged bottom.png`, `add event future validation.png`, `2 events, earlier is at top.png`.
 - [x] Timeline with all four channels — `phone.png`.
 - [x] Phone note showing customer-service context — `phone.png`, with "What the customer wanted" above "Outcome" and the note status shown as a badge.
-- [ ] Next steps area — screenshot pending.
+- [x] Next steps area — `followup.png` (Pending, owner, no due date, Complete and Dismiss) and `follow up completed.png` (Completed, actions gone, Open follow-ups back to 0).
 - [x] Commit/PR reference — `b7e4f3e` on [github.com/galpalex/OneContext](https://github.com/galpalex/OneContext).
 
 ## Day 3 — OneContext AI, security review and deployment

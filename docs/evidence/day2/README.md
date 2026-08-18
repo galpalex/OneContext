@@ -15,6 +15,19 @@ anonymously is rejected with `42501 new row violates row-level security policy`.
 The function is `SECURITY INVOKER`, so RLS governs both of its inserts; a
 `SECURITY DEFINER` function would have bypassed RLS and allowed that call.
 
+## Slice 4 — Next steps and follow-ups
+
+| File | What it proves |
+| --- | --- |
+| `followup.png` | A created follow-up in Next steps: "Send discount approval to Yosi" with a Pending badge, `No due date` stated rather than invented, the owner, and Complete and Dismiss actions. `Open follow-ups` reads **1** with the hint "Awaiting action". The OneContext AI recommendation slot sits in the same card, marked not yet connected |
+| `follow up completed.png` | The same follow-up after Complete: a Completed badge, the actions gone since a closed item offers none, the task still listed as history, and `Open follow-ups` back to **0** with "Nothing outstanding" |
+
+Together these two show the metric rule working in both directions. `Open
+follow-ups 0` here is a *measured* zero with a hint explaining it, visibly
+different from the **Not available** the same card showed while nothing read
+`follow_ups` at all. The distinction the whole metric rule exists to protect is
+therefore visible in one place.
+
 ## Internal note (option A)
 
 | File | What it proves |
