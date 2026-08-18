@@ -1,7 +1,11 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { createClient } from '@supabase/supabase-js'
-import { validateInsight } from './_shared/insight'
-import type { InsightFocus } from './_shared/insight'
+// The .js extension is deliberate and required. Vercel transpiles each function
+// rather than bundling its siblings, and package.json sets "type": "module", so
+// Node's ESM loader resolves this specifier literally at runtime. Extensionless
+// imports fail to load the whole function. TypeScript maps .js to the .ts source.
+import { validateInsight } from './_shared/insight.js'
+import type { InsightFocus } from './_shared/insight.js'
 
 /**
  * OneContext AI insight generation.
