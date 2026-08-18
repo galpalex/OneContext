@@ -17,6 +17,31 @@ note reading "sounded ready to churn, loop in the AM". The model is reading
 `agent_notes`, not just `channel_events`, and turning a shorthand internal note
 into an action.
 
+## Thin history and the confirmation gate
+
+| File | What it proves |
+| --- | --- |
+| `noa summary.png` | Noa Shapira has exactly one stored interaction. The AI describes only that enquiry, cites exactly one source, and identifies a real risk inferred from what is *absent* - "the lead is currently uncontacted". Nothing is invented. Her avatar renders from `avatar_url`, and `Open follow-ups` shows a measured 0 with "Nothing outstanding" |
+| `follow up ai noa.png` | The confirmation gate. Pressing Create follow-up opens a form titled "Confirm this task against Noa Shapira", pre-filled with the recommendation and editable. Next steps behind the dialog still reads "No follow-ups yet" - the AI has written nothing. Saving is the user's act |
+| `do next maya.png` | The same panel against the richest account |
+
+Two things these screenshots corrected:
+
+**A prediction of mine was wrong.** I expected `low` confidence on a one-event
+history; the model returned `high`. That is defensible - the single message is
+unambiguous, and the summary makes no claim beyond it - but it means the system
+prompt's "too thin to judge" instruction governs *emptiness*, not *thinness*. The
+guard that actually matters held: one event supplied, one event cited, nothing
+fabricated.
+
+**A real bug, visible in `noa summary.png`.** The summary says the enquiry arrived
+on "17 August 2026" while the source chip beside it reads "Aug 18, 2026, 01:44 AM".
+The event is stored `2026-08-17T22:44Z`; the model read UTC, the UI rendered
+UTC+3, and the two disagreed on screen. Any event between local midnight and 03:00
+would do the same. Fixed: the client now sends its IANA timezone and the function
+formats every timestamp into it before prompting, with a UTC fallback for an
+unusable value. Two tests pin it.
+
 ## A deployment failure worth recording
 
 | File | What it shows |

@@ -62,6 +62,8 @@ const SYSTEM_INSTRUCTION = [
   'actually relied on.',
   'If the history is empty or too thin to judge, say so plainly and set confidence to "low"',
   'rather than filling the gap.',
+  'All timestamps are already in the local timezone of the reader; quote them as given',
+  'and do not convert them.',
   'Write in plain British English, no marketing language, no bullet characters.',
 ].join(' ')
 
@@ -73,6 +75,45 @@ const FOCUS_HINT: Record<InsightFocus, string> = {
 
 function isFocus(value: unknown): value is InsightFocus {
   return value === 'summary' || value === 'risks' || value === 'next_action'
+}
+
+/**
+ * Formats a stored UTC timestamp in the reader's timezone.
+ *
+ * Timestamps are stored in UTC and the browser renders them locally, so handing
+ * the model raw UTC made it state a different calendar date from the one on screen
+ * for anything shortly after local midnight. It now receives the same date the
+ * user is looking at. An unusable timezone falls back to UTC rather than throwing.
+ */
+function localise(iso: unknown, timeZone: string): string | null {
+  if (typeof iso !== 'string') return null
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) return null
+
+  try {
+    return new Intl.DateTimeFormat('en-GB', {
+      timeZone,
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    }).format(date)
+  } catch {
+    return date.toISOString()
+  }
+}
+
+/** A timezone we can actually format with, or UTC. */
+function safeTimeZone(value: unknown): string {
+  if (typeof value !== 'string' || value.length === 0 || value.length > 64) return 'UTC'
+  try {
+    new Intl.DateTimeFormat('en-GB', { timeZone: value }).format(new Date())
+    return value
+  } catch {
+    return 'UTC'
+  }
 }
 
 /** Server-side env, tolerating the VITE_ names a local .env already carries. */
@@ -122,6 +163,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
     return response.status(400).json({ error: 'A customerId is required.' })
   }
   const focus: InsightFocus = isFocus(body['focus']) ? body['focus'] : 'summary'
+  const timeZone = safeTimeZone(body['timeZone'])
 
   /*
    * One client per request, carrying the caller's token. Every read below is
@@ -180,11 +222,26 @@ export default async function handler(request: VercelRequest, response: VercelRe
   const events = eventsResult.data ?? []
   const suppliedEventIds = events.map((event) => String(event.id))
 
+  /*
+   * Dates are rewritten into the reader's timezone before the model sees them, so
+   * anything it says about "when" matches the timeline next to it.
+   */
   const context = {
+    timezone: timeZone,
     customer: customerResult.data,
-    events,
-    notes: notesResult.data ?? [],
-    follow_ups: followUpsResult.data ?? [],
+    events: events.map((event) => ({
+      ...event,
+      occurred_at: localise(event.occurred_at, timeZone) ?? event.occurred_at,
+    })),
+    notes: (notesResult.data ?? []).map((note) => ({
+      ...note,
+      created_at: localise(note.created_at, timeZone) ?? note.created_at,
+    })),
+    follow_ups: (followUpsResult.data ?? []).map((followUp) => ({
+      ...followUp,
+      due_at: localise(followUp.due_at, timeZone) ?? followUp.due_at,
+      created_at: localise(followUp.created_at, timeZone) ?? followUp.created_at,
+    })),
   }
 
   const geminiBody = {

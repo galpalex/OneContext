@@ -60,7 +60,17 @@ export async function generateInsight(
         'Content-Type': 'application/json',
         Authorization: `Bearer ${data.session.access_token}`,
       },
-      body: JSON.stringify({ customerId, focus }),
+      /*
+       * The timezone matters: events are stored in UTC, but the UI renders local
+       * time. Without this the model states UTC calendar dates while the timeline
+       * beside it shows local ones, and any event just after local midnight
+       * appears to be a day out.
+       */
+      body: JSON.stringify({
+        customerId,
+        focus,
+        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      }),
     })
   } catch {
     throw new Error('OneContext AI could not be reached. Check your connection and try again.')

@@ -217,6 +217,47 @@ describe('POST /api/insight', () => {
     expect(JSON.stringify(response.body)).not.toContain('k3y-Zx91-do-not-log')
   })
 
+  it('gives the model dates in the reader timezone, not UTC', async () => {
+    // The real case this fixes: 22:44Z is the next calendar day in Jerusalem, so
+    // the model was stating 17 August while the timeline beside it showed 18 August.
+    tableResults['channel_events'] = {
+      data: [{ id: 'evt-1', channel: 'web', occurred_at: '2026-08-17T22:44:00Z' }],
+      error: null,
+    }
+
+    const response = mockResponse()
+    await handler(
+      request({ body: { customerId: 'cust-1', timeZone: 'Asia/Jerusalem' } }),
+      response as never,
+    )
+
+    expect(response.statusCode).toBe(200)
+    const [, init] = (fetch as unknown as { mock: { calls: [string, RequestInit][] } }).mock.calls[0]!
+    const prompt = String(init.body)
+    expect(prompt).toContain('18 Aug 2026')
+    expect(prompt).not.toContain('2026-08-17T22:44:00Z')
+    expect(prompt).toContain('Asia/Jerusalem')
+  })
+
+  it('falls back to UTC when the timezone is unusable', async () => {
+    tableResults['channel_events'] = {
+      data: [{ id: 'evt-1', channel: 'web', occurred_at: '2026-08-17T22:44:00Z' }],
+      error: null,
+    }
+
+    const response = mockResponse()
+    await handler(
+      request({ body: { customerId: 'cust-1', timeZone: 'Not/AZone' } }),
+      response as never,
+    )
+
+    expect(response.statusCode).toBe(200)
+    const [, init] = (fetch as unknown as { mock: { calls: [string, RequestInit][] } }).mock.calls[0]!
+    const prompt = String(init.body)
+    expect(prompt).toContain('17 Aug 2026')
+    expect(prompt).toContain('UTC')
+  })
+
   it('stores the insight and filters citations to supplied events', async () => {
     const response = mockResponse()
     await handler(request(), response as never)
