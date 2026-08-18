@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { createClient } from '@supabase/supabase-js'
-import { validateInsight } from '../src/lib/insight'
-import type { InsightFocus } from '../src/lib/insight'
+import { validateInsight } from './_shared/insight'
+import type { InsightFocus } from './_shared/insight'
 
 /**
  * OneContext AI insight generation.

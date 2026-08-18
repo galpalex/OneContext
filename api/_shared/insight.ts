@@ -133,3 +133,17 @@ export function validateInsight(raw: unknown, suppliedEventIds: string[]): Valid
     droppedSourceIds,
   }
 }
+
+/*
+ * Why this lives under api/ rather than src/lib/:
+ *
+ * package.json sets "type": "module", and Vercel does not bundle files from
+ * outside the api directory into a function. A relative import reaching into
+ * src/ therefore survived to Node's ESM loader as an unresolvable specifier and
+ * the function failed to load - FUNCTION_INVOCATION_FAILED on every request,
+ * including ones that should have returned 405 before running any logic.
+ *
+ * Keeping it here means one definition of the contract and its validator, shared
+ * by the function and the browser, rather than two copies of security-critical
+ * logic free to drift apart. Vite has no trouble importing it from src/.
+ */
