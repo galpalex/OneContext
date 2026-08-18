@@ -2,8 +2,30 @@ import { supabase } from '../lib/supabase'
 import { DEFAULT_STAGE, isLifecycleStage } from '../lib/lifecycle'
 import type { Customer, NewCustomerInput } from '../lib/types'
 
-const CUSTOMER_COLUMNS =
-  'id, user_id, name, company, email, phone, job_title, lifecycle_stage, stage_changed_at, customer_need, tags, avatar_url, created_at'
+const CORE_COLUMNS =
+  'id, user_id, name, company, email, phone, job_title, lifecycle_stage, stage_changed_at, customer_need, tags, created_at'
+
+/**
+ * avatar_url arrived in migration 0004 and is optional, so the app must not depend
+ * on it having been run. Pushing to main deploys immediately, which means code can
+ * reach production before its migration does - and a missing optional column took
+ * out the whole customers list once already.
+ *
+ * The first query that hits undefined_column (42703) for this column sets the flag,
+ * and every later query omits it. Avatars then simply fall back to initials.
+ */
+let avatarColumnMissing = false
+
+function customerColumns(): string {
+  return avatarColumnMissing ? CORE_COLUMNS : `${CORE_COLUMNS}, avatar_url`
+}
+
+const UNDEFINED_COLUMN = '42703'
+
+function isMissingAvatarColumn(error: { code?: string; message?: string } | null): boolean {
+  if (!error) return false
+  return error.code === UNDEFINED_COLUMN && (error.message ?? '').includes('avatar_url')
+}
 
 interface RawCustomer {
   id: string
@@ -17,7 +39,7 @@ interface RawCustomer {
   stage_changed_at: string
   customer_need: string | null
   tags: unknown
-  avatar_url: string | null
+  avatar_url?: string | null
   created_at: string
 }
 
@@ -40,7 +62,7 @@ function normalize(row: RawCustomer): Customer {
     stage_changed_at: row.stage_changed_at,
     customer_need: row.customer_need,
     tags: toStringArray(row.tags),
-    avatar_url: row.avatar_url,
+    avatar_url: row.avatar_url ?? null,
     created_at: row.created_at,
   }
 }
@@ -51,14 +73,19 @@ function normalize(row: RawCustomer): Customer {
  * `auth.uid() = user_id`, so ownership is enforced by Postgres, not by the client.
  */
 export async function listCustomers(): Promise<Customer[]> {
-  const { data, error } = await supabase
-    .from('customers')
-    .select(CUSTOMER_COLUMNS)
-    .order('created_at', { ascending: false })
+  const run = () =>
+    supabase.from('customers').select(customerColumns()).order('created_at', { ascending: false })
+
+  let { data, error } = await run()
+
+  if (isMissingAvatarColumn(error)) {
+    avatarColumnMissing = true
+    ;({ data, error } = await run())
+  }
 
   if (error) throw new Error(error.message)
 
-  return ((data ?? []) as RawCustomer[]).map(normalize)
+  return ((data ?? []) as unknown as RawCustomer[]).map(normalize)
 }
 
 /**
@@ -67,16 +94,20 @@ export async function listCustomers(): Promise<Customer[]> {
  * the intended behaviour.
  */
 export async function getCustomer(id: string): Promise<Customer | null> {
-  const { data, error } = await supabase
-    .from('customers')
-    .select(CUSTOMER_COLUMNS)
-    .eq('id', id)
-    .maybeSingle()
+  const run = () =>
+    supabase.from('customers').select(customerColumns()).eq('id', id).maybeSingle()
+
+  let { data, error } = await run()
+
+  if (isMissingAvatarColumn(error)) {
+    avatarColumnMissing = true
+    ;({ data, error } = await run())
+  }
 
   if (error) throw new Error(error.message)
   if (!data) return null
 
-  return normalize(data as RawCustomer)
+  return normalize(data as unknown as RawCustomer)
 }
 
 /**
@@ -97,10 +128,10 @@ export async function createCustomer(input: NewCustomerInput): Promise<Customer>
       customer_need: input.customer_need,
       tags: input.tags,
     })
-    .select(CUSTOMER_COLUMNS)
+    .select(customerColumns())
     .single()
 
   if (error) throw new Error(error.message)
 
-  return normalize(data as RawCustomer)
+  return normalize(data as unknown as RawCustomer)
 }
