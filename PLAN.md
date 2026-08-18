@@ -64,20 +64,20 @@ Make the OneContext customer workspace useful: every channel produces a real eve
 
 ### Tasks
 
-- [ ] Implement `/customers/:id` route.
-- [ ] Load customer, events, notes and follow-ups.
+- [x] Implement `/customers/:id` route.
+- [ ] Load customer, events, notes and follow-ups. — customer and events done; notes and follow-ups pending.
 - [ ] Merge events and notes into a deterministic timeline.
-- [ ] Sort by `occurred_at` / `created_at`.
-- [ ] Add channel badges and icons.
-- [ ] Build Web event form.
+- [x] Sort by `occurred_at` / `created_at`. — newest first; a backdated event sorted below a newer one.
+- [x] Add channel badges and icons.
+- [x] Build Web event form.
 - [ ] Build WhatsApp simulation.
 - [ ] Build Email logging form.
 - [ ] Build Phone customer-service note form.
-- [ ] Add type, direction and status fields.
-- [ ] Add event success feedback.
-- [ ] Add error handling and retry.
-- [ ] Add Overview KPI cards based only on stored records.
-- [ ] Add engagement section with simple activity trend.
+- [ ] Add type, direction and status fields. — type and direction done; status belongs to the phone note.
+- [x] Add event success feedback. — green "Event logged" banner.
+- [x] Add error handling and retry. — timeline has its own error state and retry, separate from the customer load.
+- [x] Add Overview KPI cards based only on stored records.
+- [x] Add engagement section with simple activity trend. — per-channel counts plus a 14-day trend.
 - [ ] Add Next steps area.
 - [ ] Add follow-up creation form.
 - [ ] Add responsive behavior for narrow screens.
@@ -87,17 +87,19 @@ Make the OneContext customer workspace useful: every channel produces a real eve
 - [ ] Every channel creates an event owned by the current user.
 - [ ] Timeline displays events from all four channels.
 - [ ] Phone submission creates both a phone event and an agent note.
-- [ ] Metrics change when new events are added.
+- [x] Metrics change when new events are added. — Total interactions went 1 → 2, trend gained a second bar.
 - [ ] Empty and error states are visible and usable.
-- [ ] No fake metrics are shown when data is missing.
+- [x] No fake metrics are shown when data is missing. — Open follow-ups still reads "Not available" while Total interactions shows a measured 0.
 
 ### Day 2 evidence
 
-- Screenshot: OneContext customer workspace with lifecycle bar and KPI cards.
-- Screenshot: Timeline with Web, WhatsApp, Email and Phone events.
-- Screenshot: Phone note showing customer-service context.
-- Screenshot: Next steps area.
-- Commit/PR reference.
+See [`docs/evidence/day2/`](docs/evidence/day2/).
+
+- [x] Slice 1, Web channel — `add event.png`, `event logged.png`, `event logged bottom.png`, `add event future validation.png`, `2 events, earlier is at top.png`.
+- [ ] Timeline with all four channels — Web only so far.
+- [ ] Phone note showing customer-service context.
+- [ ] Next steps area.
+- [x] Commit/PR reference — `b7e4f3e` on [github.com/galpalex/OneContext](https://github.com/galpalex/OneContext).
 
 ## Day 3 — OneContext AI, security review and deployment
 
