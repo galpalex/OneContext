@@ -15,6 +15,12 @@ anonymously is rejected with `42501 new row violates row-level security policy`.
 The function is `SECURITY INVOKER`, so RLS governs both of its inserts; a
 `SECURITY DEFINER` function would have bypassed RLS and allowed that call.
 
+## Internal note (option A)
+
+| File | What it proves |
+| --- | --- |
+| `internal phone note.png` | Both branches of `distinctNoteText` in one frame. The Aug 19 call shows the internal note "sounded ready to churn, loop in the AM" in its own amber block, separate from `Outcome: got 5 %`, alongside Pending and Follow-up required badges. The Aug 18 call below it was written by the seven-argument function from migration 0002, so its note is a verbatim copy of the outcome - and no internal-note block renders. Rows written before 0003 therefore still display correctly |
+
 ## Form validation
 
 | File | What it proves |
