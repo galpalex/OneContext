@@ -22,9 +22,14 @@ Implemented:
 - Customer workspace shell: header, read-only lifecycle bar, left context rail,
   deterministic KPI cards and the OneContext AI rail in its final position.
 - Full schema with indexes and Row Level Security for all five tables.
+- All four channels: web requests, WhatsApp simulation, email logging, and phone
+  calls that write a phone event plus a linked agent note in one transaction.
+- Unified activity timeline merging `channel_events` and `agent_notes`, newest
+  first, with deterministic tie-breaking.
+- Engagement counts per channel and a 14-day activity trend.
 
-Not implemented yet (later iterations): channel event capture, unified timeline,
-follow-ups, and the `/api/insight` serverless function that calls Gemini.
+Not implemented yet (later iterations): follow-up creation, the Next steps area,
+and the `/api/insight` serverless function that calls Gemini.
 
 Metrics that would require channel events or follow-ups display
 **Not available** rather than a zero, so no number on screen is invented.
@@ -46,6 +51,10 @@ npm install
    [`supabase/migrations/0001_init.sql`](supabase/migrations/0001_init.sql) and run it.
    This creates the five tables, their indexes, and enables RLS with
    `auth.uid() = user_id` policies.
+3. Run [`supabase/migrations/0002_phone_interactions.sql`](supabase/migrations/0002_phone_interactions.sql)
+   the same way. It links an agent note to the interaction it came from and adds
+   `log_phone_interaction()`, which writes a phone event and its note in one
+   transaction. **The phone channel fails without it.**
 
 ### 3. Enable Google sign-in
 
@@ -89,7 +98,9 @@ npm run dev
 | `npm run dev`       | Vite dev server on port 5173                |
 | `npm run dev:api`   | `vercel dev` — SPA plus serverless functions |
 | `npm run typecheck` | `tsc --noEmit`                               |
-| `npm run build`     | Typecheck, then production build to `dist/`  |
+| `npm run test`      | Run the unit tests once (Vitest)             |
+| `npm run test:watch`| Run the unit tests in watch mode             |
+| `npm run build`     | Typecheck, run tests, then build to `dist/`  |
 | `npm run preview`   | Serve the production build locally           |
 
 ---

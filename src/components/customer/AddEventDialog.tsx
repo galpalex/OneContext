@@ -1,9 +1,17 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { createChannelEvent } from '../../data/events'
-import { CHANNELS, DIRECTIONS, WEB_EVENT_TYPES, contentKey } from '../../lib/channels'
+import { logPhoneInteraction } from '../../data/notes'
+import {
+  CALL_DIRECTIONS,
+  CHANNELS,
+  DIRECTIONS,
+  NOTE_STATUSES,
+  WEB_EVENT_TYPES,
+  contentKey,
+} from '../../lib/channels'
 import { describeError } from '../../lib/supabase'
-import type { Channel, ChannelEvent, Direction } from '../../lib/types'
+import type { Channel, ChannelEvent, Direction, NoteStatus } from '../../lib/types'
 import { Button } from '../ui/Button'
 import { Field } from '../ui/Field'
 import { Icon } from '../ui/Icon'
@@ -15,9 +23,6 @@ interface AddEventDialogProps {
   onClose: () => void
   onCreated: (event: ChannelEvent) => void
 }
-
-/** Channels implemented so far. Phone arrives with its paired agent note. */
-const ENABLED: readonly Channel[] = ['web', 'whatsapp', 'email']
 
 /** Per-channel form shape, following the field lists in FEATURESPEC. */
 const SHAPE: Record<
@@ -46,11 +51,12 @@ const SHAPE: Record<
     bodyLabel: 'Body',
     bodyHint: 'Paste the email body. Logging it here does not send anything.',
   },
+  // Phone does not use this shape: it has its own fields below.
   phone: {
-    subject: true,
+    subject: false,
     type: false,
     direction: true,
-    bodyLabel: 'Notes',
+    bodyLabel: 'Outcome',
     bodyHint: '',
   },
 }
@@ -68,9 +74,13 @@ interface Draft {
   subject: string
   body: string
   occurredAt: string
+  /** Phone only: what the customer wanted, per FEATURESPEC's call summary. */
+  wanted: string
+  status: NoteStatus
+  followUpRequired: boolean
 }
 
-type FieldErrors = Partial<Record<'subject' | 'body' | 'occurredAt', string>>
+type FieldErrors = Partial<Record<'subject' | 'body' | 'wanted' | 'occurredAt', string>>
 
 const DEFAULT_TYPE = WEB_EVENT_TYPES[0].value
 
@@ -81,16 +91,22 @@ function emptyDraft(): Draft {
     subject: '',
     body: '',
     occurredAt: nowLocalInput(),
+    wanted: '',
+    status: 'pending',
+    followUpRequired: false,
   }
 }
 
 /**
- * Logs one interaction on any implemented channel.
+ * Logs one interaction on any channel.
  *
- * Each channel keeps its own draft, so switching tabs never carries text from one
- * channel into another and never discards what was already typed: come back to a
- * tab and your input is still there. Drafts live only while the dialog is open -
- * Cancel discards them, which is what closing a dialog should mean.
+ * Each channel keeps its own draft, so switching tabs neither carries text from
+ * one channel into another nor discards what was typed. Drafts live only while
+ * the dialog is open - Cancel discards them.
+ *
+ * Phone is the one channel that writes two rows: a phone event plus a linked
+ * agent note carrying status and the follow-up flag. Both are written by a single
+ * Postgres function so they share a transaction.
  */
 export function AddEventDialog({
   customerId,
@@ -111,6 +127,7 @@ export function AddEventDialog({
 
   const shape = SHAPE[channel]
   const draft = drafts[channel]
+  const isPhone = channel === 'phone'
 
   function update<K extends keyof Draft>(key: K, value: Draft[K]) {
     setDrafts((current) => ({ ...current, [channel]: { ...current[channel], [key]: value } }))
@@ -128,12 +145,20 @@ export function AddEventDialog({
   function validate(): FieldErrors {
     const errors: FieldErrors = {}
 
-    if (shape.subject && draft.subject.trim().length === 0) {
-      errors.subject = 'Enter a short subject.'
-    }
-
-    if (draft.body.trim().length === 0) {
-      errors.body = `Enter the ${shape.bodyLabel.toLowerCase()}.`
+    if (isPhone) {
+      if (draft.wanted.trim().length === 0) {
+        errors.wanted = 'Record what the customer wanted from this call.'
+      }
+      if (draft.body.trim().length === 0) {
+        errors.body = 'Record the outcome of the call.'
+      }
+    } else {
+      if (shape.subject && draft.subject.trim().length === 0) {
+        errors.subject = 'Enter a short subject.'
+      }
+      if (draft.body.trim().length === 0) {
+        errors.body = `Enter the ${shape.bodyLabel.toLowerCase()}.`
+      }
     }
 
     const when = new Date(draft.occurredAt)
@@ -157,18 +182,30 @@ export function AddEventDialog({
     setSubmitting(true)
 
     try {
-      const created = await createChannelEvent({
-        customer_id: customerId,
-        channel,
-        // FEATURESPEC gives `type` to the web channel only; the others are
-        // distinguished by direction, so no taxonomy is invented for them.
-        type: shape.type ? draft.type : null,
-        // Web has no direction control, so it can only ever be inbound.
-        direction: shape.direction ? draft.direction : 'inbound',
-        subject: shape.subject ? draft.subject.trim() : null,
-        content: { [contentKey(channel)]: draft.body.trim() },
-        occurred_at: new Date(draft.occurredAt).toISOString(),
-      })
+      const occurredAt = new Date(draft.occurredAt).toISOString()
+
+      const created = isPhone
+        ? await logPhoneInteraction({
+            customer_id: customerId,
+            direction: draft.direction,
+            what_the_customer_wanted: draft.wanted.trim(),
+            outcome: draft.body.trim(),
+            status: draft.status,
+            follow_up_required: draft.followUpRequired,
+            occurred_at: occurredAt,
+          })
+        : await createChannelEvent({
+            customer_id: customerId,
+            channel,
+            // FEATURESPEC gives `type` to the web channel only; the others are
+            // distinguished by direction, so no taxonomy is invented for them.
+            type: shape.type ? draft.type : null,
+            // Web has no direction control, so it can only ever be inbound.
+            direction: shape.direction ? draft.direction : 'inbound',
+            subject: shape.subject ? draft.subject.trim() : null,
+            content: { [contentKey(channel)]: draft.body.trim() },
+            occurred_at: occurredAt,
+          })
 
       onCreated(created)
     } catch (caught) {
@@ -177,6 +214,8 @@ export function AddEventDialog({
       setSubmitting(false)
     }
   }
+
+  const directionOptions = isPhone ? CALL_DIRECTIONS : DIRECTIONS
 
   return (
     <Modal
@@ -203,10 +242,11 @@ export function AddEventDialog({
     >
       <div className="oc-chan-tabs" role="tablist" aria-label="Channel">
         {CHANNELS.map((option) => {
-          const enabled = ENABLED.includes(option.value)
+          const other = drafts[option.value]
           const hasDraft =
-            drafts[option.value].subject.trim().length > 0 ||
-            drafts[option.value].body.trim().length > 0
+            other.subject.trim().length > 0 ||
+            other.body.trim().length > 0 ||
+            other.wanted.trim().length > 0
 
           return (
             <button
@@ -214,9 +254,8 @@ export function AddEventDialog({
               type="button"
               role="tab"
               aria-selected={option.value === channel}
-              disabled={!enabled || submitting}
+              disabled={submitting}
               className={option.value === channel ? 'oc-chan-tab is-active' : 'oc-chan-tab'}
-              title={enabled ? undefined : 'Available in the next slice'}
               onClick={() => selectChannel(option.value)}
             >
               <Icon name={option.icon} size={15} />
@@ -264,7 +303,7 @@ export function AddEventDialog({
           ) : null}
 
           {shape.direction ? (
-            <Field id="event-direction" label="Direction">
+            <Field id="event-direction" label={isPhone ? 'Call direction' : 'Direction'}>
               <select
                 id="event-direction"
                 className="oc-select"
@@ -272,7 +311,7 @@ export function AddEventDialog({
                 onChange={(changed) => update('direction', changed.target.value as Direction)}
                 disabled={submitting}
               >
-                {DIRECTIONS.map((option) => (
+                {directionOptions.map((option) => (
                   <option key={option.value} value={option.value}>
                     {option.label}
                   </option>
@@ -283,7 +322,7 @@ export function AddEventDialog({
 
           <Field
             id="event-occurred-at"
-            label="Occurred at"
+            label={isPhone ? 'Call time' : 'Occurred at'}
             hint="Defaults to now. Set it earlier to log a past interaction."
             error={fieldErrors.occurredAt}
           >
@@ -301,7 +340,25 @@ export function AddEventDialog({
             />
           </Field>
 
-          {shape.subject ? (
+          {isPhone ? (
+            <Field id="event-status" label="Status">
+              <select
+                id="event-status"
+                className="oc-select"
+                value={draft.status}
+                onChange={(changed) => update('status', changed.target.value as NoteStatus)}
+                disabled={submitting}
+              >
+                {NOTE_STATUSES.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          ) : null}
+
+          {shape.subject && !isPhone ? (
             <Field
               id="event-subject"
               label="Subject"
@@ -322,11 +379,33 @@ export function AddEventDialog({
             </Field>
           ) : null}
 
+          {isPhone ? (
+            <Field
+              id="event-wanted"
+              label="What the customer wanted"
+              required
+              hint="The reason for the call, in the customer's terms."
+              error={fieldErrors.wanted}
+              className="oc-form-grid__full"
+            >
+              <textarea
+                id="event-wanted"
+                className="oc-textarea"
+                value={draft.wanted}
+                onChange={(changed) => update('wanted', changed.target.value)}
+                aria-invalid={Boolean(fieldErrors.wanted)}
+                aria-describedby={fieldErrors.wanted ? 'event-wanted-error' : 'event-wanted-hint'}
+                rows={3}
+                disabled={submitting}
+              />
+            </Field>
+          ) : null}
+
           <Field
             id="event-body"
-            label={shape.bodyLabel}
+            label={isPhone ? 'Outcome' : shape.bodyLabel}
             required
-            hint={shape.bodyHint}
+            hint={isPhone ? 'What was agreed or done by the end of the call.' : shape.bodyHint}
             error={fieldErrors.body}
             className="oc-form-grid__full"
           >
@@ -337,13 +416,39 @@ export function AddEventDialog({
               onChange={(changed) => update('body', changed.target.value)}
               aria-invalid={Boolean(fieldErrors.body)}
               aria-describedby={fieldErrors.body ? 'event-body-error' : 'event-body-hint'}
-              rows={5}
+              rows={isPhone ? 3 : 5}
               disabled={submitting}
             />
           </Field>
+
+          {isPhone ? (
+            <div className="oc-form-grid__full">
+              <label className="oc-checkbox" htmlFor="event-follow-up">
+                <input
+                  id="event-follow-up"
+                  type="checkbox"
+                  checked={draft.followUpRequired}
+                  onChange={(changed) => update('followUpRequired', changed.target.checked)}
+                  disabled={submitting}
+                />
+                <span>
+                  <span className="oc-checkbox__label">Follow-up required</span>
+                  <span className="oc-field__hint">
+                    Flags the note as needing a next step. Creating the follow-up task itself stays a
+                    separate, deliberate action.
+                  </span>
+                </span>
+              </label>
+            </div>
+          ) : null}
         </div>
 
-        {channel === 'web' ? (
+        {isPhone ? (
+          <p className="oc-meta oc-mt-3">
+            Saving records a <strong>phone interaction</strong> and a linked{' '}
+            <strong>agent note</strong> in one transaction.
+          </p>
+        ) : channel === 'web' ? (
           <p className="oc-meta oc-mt-3">
             Web requests are recorded as <strong>inbound</strong>, since the customer initiates them.
           </p>

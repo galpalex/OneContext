@@ -70,6 +70,8 @@ export interface AgentNote {
   id: string
   customer_id: string
   user_id: string
+  /** Set when the note was produced by a channel interaction, e.g. a phone call. */
+  channel_event_id: string | null
   note: string
   status: NoteStatus
   follow_up_required: boolean
@@ -113,5 +115,20 @@ export interface NewChannelEventInput {
   direction: Direction | null
   subject: string | null
   content: Record<string, unknown>
+  occurred_at: string
+}
+
+/**
+ * Fields the browser sends when logging a phone call. Written by the
+ * log_phone_interaction Postgres function, which creates the phone event and its
+ * agent note in one transaction.
+ */
+export interface NewPhoneInteractionInput {
+  customer_id: string
+  direction: Direction
+  what_the_customer_wanted: string
+  outcome: string
+  status: NoteStatus
+  follow_up_required: boolean
   occurred_at: string
 }

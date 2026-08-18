@@ -65,15 +65,15 @@ Make the OneContext customer workspace useful: every channel produces a real eve
 ### Tasks
 
 - [x] Implement `/customers/:id` route.
-- [ ] Load customer, events, notes and follow-ups. — customer and events done; notes and follow-ups pending.
-- [ ] Merge events and notes into a deterministic timeline.
+- [ ] Load customer, events, notes and follow-ups. — customer, events and notes done; follow-ups pending.
+- [x] Merge events and notes into a deterministic timeline. — `buildTimeline` with 8 unit tests; a phone note attaches to its event instead of duplicating it.
 - [x] Sort by `occurred_at` / `created_at`. — newest first; a backdated event sorted below a newer one.
 - [x] Add channel badges and icons.
 - [x] Build Web event form.
 - [x] Build WhatsApp simulation.
 - [x] Build Email logging form.
-- [ ] Build Phone customer-service note form.
-- [ ] Add type, direction and status fields. — type and direction done; status belongs to the phone note.
+- [x] Build Phone customer-service note form. — writes a phone event and a linked agent note in one transaction. **Requires migration `0002_phone_interactions.sql`.**
+- [x] Add type, direction and status fields. — type (web), direction (whatsapp/email/phone), status and follow-up flag (phone note).
 - [x] Add event success feedback. — green "Event logged" banner.
 - [x] Add error handling and retry. — timeline has its own error state and retry, separate from the customer load.
 - [x] Add Overview KPI cards based only on stored records.

@@ -2,9 +2,11 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { getCustomer } from '../data/customers'
 import { listChannelEvents } from '../data/events'
+import { listAgentNotes } from '../data/notes'
 import { describeError, isSupabaseConfigured, supabaseConfigError } from '../lib/supabase'
 import { useAuth } from '../auth/useAuth'
-import type { ChannelEvent, Customer } from '../lib/types'
+import type { AgentNote, ChannelEvent, Customer } from '../lib/types'
+import { buildTimeline } from '../lib/timeline'
 import { CustomerHeader } from '../components/customer/CustomerHeader'
 import { LifecycleBar } from '../components/customer/LifecycleBar'
 import { KpiCards } from '../components/customer/KpiCards'
@@ -34,6 +36,7 @@ export function CustomerWorkspacePage() {
   const [error, setError] = useState<string | null>(null)
 
   const [events, setEvents] = useState<ChannelEvent[]>([])
+  const [notes, setNotes] = useState<AgentNote[]>([])
   const [eventsState, setEventsState] = useState<EventsState>('loading')
   const [eventsError, setEventsError] = useState<string | null>(null)
 
@@ -66,17 +69,23 @@ export function CustomerWorkspacePage() {
   }, [id])
 
   /**
-   * Events load separately from the customer: a failed event query should show a
-   * retry inside the timeline card, not blank out the whole workspace.
+   * History loads separately from the customer: a failed query should show a
+   * retry inside the timeline card, not blank out the whole workspace. Events and
+   * notes are fetched together so the merged timeline never renders half of it.
    */
-  const loadEvents = useCallback(async () => {
+  const loadHistory = useCallback(async () => {
     if (!id || !isSupabaseConfigured) return
 
     setEventsState('loading')
     setEventsError(null)
 
     try {
-      setEvents(await listChannelEvents(id))
+      const [loadedEvents, loadedNotes] = await Promise.all([
+        listChannelEvents(id),
+        listAgentNotes(id),
+      ])
+      setEvents(loadedEvents)
+      setNotes(loadedNotes)
       setEventsState('ready')
     } catch (caught) {
       setEventsError(describeError(caught))
@@ -89,8 +98,10 @@ export function CustomerWorkspacePage() {
   }, [loadCustomer])
 
   useEffect(() => {
-    void loadEvents()
-  }, [loadEvents])
+    void loadHistory()
+  }, [loadHistory])
+
+  const timeline = buildTimeline(events, notes)
 
   if (state === 'loading') {
     return (
@@ -241,16 +252,16 @@ export function CustomerWorkspacePage() {
               <ErrorState
                 title="Interactions could not be loaded"
                 message={eventsError ?? 'Unknown error.'}
-                onRetry={() => void loadEvents()}
+                onRetry={() => void loadHistory()}
                 inline
               />
             </CardBody>
-          ) : events.length === 0 ? (
+          ) : timeline.length === 0 ? (
             <CardBody>
               <EmptyState
                 icon="inbox"
                 title="No interactions recorded yet"
-                body="Log the first web request, and it will appear here as the start of one chronological history across every channel."
+                body="Log the first interaction, and it will appear here as the start of one chronological history across web, WhatsApp, email and phone."
                 actions={
                   <Button
                     variant="primary"
@@ -265,7 +276,7 @@ export function CustomerWorkspacePage() {
             </CardBody>
           ) : (
             <CardBody padding="flush">
-              <ActivityTimeline events={events} />
+              <ActivityTimeline items={timeline} />
             </CardBody>
           )}
         </Card>
@@ -283,10 +294,13 @@ export function CustomerWorkspacePage() {
           onCreated={(created) => {
             setDialogOpen(false)
             setSuccessMessage(
-              `${created.subject ?? 'Web request'} was added to ${customer.name}'s timeline.`,
+              created.channel === 'phone'
+                ? `Phone call and its agent note were added to ${customer.name}'s timeline.`
+                : `${created.subject ?? 'Interaction'} was added to ${customer.name}'s timeline.`,
             )
-            // Re-read from the server so the timeline and metrics reflect stored truth.
-            void loadEvents()
+            // Re-read from the server so the timeline and metrics reflect stored
+            // truth - a phone call writes two rows, and only the server knows both.
+            void loadHistory()
           }}
         />
       ) : null}

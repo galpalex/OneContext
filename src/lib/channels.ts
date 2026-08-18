@@ -64,3 +64,16 @@ export const DIRECTIONS = [
   { value: 'inbound', label: 'Inbound - from the customer' },
   { value: 'outbound', label: 'Outbound - from your team' },
 ] as const
+
+/** Workflow state for a phone call's agent note. */
+export const NOTE_STATUSES = [
+  { value: 'pending', label: 'Pending - needs work' },
+  { value: 'resolved', label: 'Resolved - nothing outstanding' },
+  { value: 'escalated', label: 'Escalated - handed on' },
+] as const
+
+/** Call direction, phrased for a phone conversation rather than a message. */
+export const CALL_DIRECTIONS = [
+  { value: 'inbound', label: 'Inbound - the customer called' },
+  { value: 'outbound', label: 'Outbound - we called the customer' },
+] as const

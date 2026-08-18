@@ -1548,3 +1548,36 @@
   border-radius: 50%;
   background: var(--oc-attention-600);
 }
+
+/* Agent-note entries use a neutral dot, distinct from channel accents. */
+.oc-timeline__dot--note {
+  background: var(--oc-neutral-500);
+}
+
+/* --- Checkbox ------------------------------------------------------------ */
+
+.oc-checkbox {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--oc-space-3);
+  padding: var(--oc-space-3);
+  border: 1px solid var(--oc-border);
+  border-radius: var(--oc-radius-md);
+  background: var(--oc-surface-sunken);
+  cursor: pointer;
+}
+
+.oc-checkbox input {
+  width: 16px;
+  height: 16px;
+  margin: 2px 0 0;
+  accent-color: var(--oc-primary-600);
+  cursor: pointer;
+}
+
+.oc-checkbox__label {
+  display: block;
+  font-size: var(--oc-text-base);
+  font-weight: var(--oc-weight-medium);
+  color: var(--oc-neutral-700);
+}
