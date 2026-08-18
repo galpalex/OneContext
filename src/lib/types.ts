@@ -134,3 +134,15 @@ export interface NewPhoneInteractionInput {
   follow_up_required: boolean
   occurred_at: string
 }
+
+/**
+ * Fields the browser sends when creating a follow-up.
+ * `status` is absent because a new follow-up is always pending, and `user_id`
+ * because Postgres assigns auth.uid().
+ */
+export interface NewFollowUpInput {
+  customer_id: string
+  title: string
+  source: FollowUpSource
+  due_at: string | null
+}

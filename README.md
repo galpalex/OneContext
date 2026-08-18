@@ -11,7 +11,7 @@ Auth, RLS) · Vercel · Google Gemini through a Vercel serverless function.
 
 ---
 
-## Current status: Day 2 complete except follow-ups
+## Current status: Day 2 complete
 
 Implemented:
 
@@ -27,9 +27,12 @@ Implemented:
 - Unified activity timeline merging `channel_events` and `agent_notes`, newest
   first, with deterministic tie-breaking.
 - Engagement counts per channel and a 14-day activity trend.
+- Next steps area with follow-up creation, completion and dismissal.
 
-Not implemented yet (later iterations): follow-up creation, the Next steps area,
-and the `/api/insight` serverless function that calls Gemini.
+Not implemented yet: the `/api/insight` serverless function that calls Gemini, and
+the OneContext AI panel that consumes it. Cross-customer Inbox and Follow-ups
+views are deferred work, not an upcoming slice - the workspace timeline is the
+unified view and Next steps holds the tasks.
 
 A measured zero and an absent measurement are shown differently: `Total
 interactions 0` is a fact once `channel_events` has been read, while

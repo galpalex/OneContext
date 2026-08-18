@@ -12,8 +12,10 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { label: 'Customers', icon: 'users', to: '/customers' },
-  { label: 'Inbox / Events', icon: 'inbox', note: 'Day 2' },
-  { label: 'Follow-ups', icon: 'tasks', note: 'Day 2' },
+  // Cross-customer views are deferred work in PLAN.md, not an upcoming slice.
+  // The workspace timeline is the unified view; Next steps holds the tasks.
+  { label: 'Inbox / Events', icon: 'inbox', note: 'Later' },
+  { label: 'Follow-ups', icon: 'tasks', note: 'Later' },
   { label: 'Analytics', icon: 'chart', note: 'Later' },
   { label: 'Settings', icon: 'settings', note: 'Later' },
 ]
@@ -51,7 +53,7 @@ export function SideNav() {
       </div>
 
       <p className="oc-nav__footer">
-        Day 1 slice: authentication, customers and the workspace shell.
+        Interactions and follow-ups live inside each customer's workspace.
       </p>
     </nav>
   )

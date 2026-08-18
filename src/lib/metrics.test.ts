@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { dailyActivity, deriveMetrics } from './metrics'
-import type { ChannelEvent } from './types'
+import { countFlaggedNotes, dailyActivity, deriveFollowUpMetrics, deriveMetrics } from './metrics'
+import type { AgentNote, ChannelEvent, FollowUp, FollowUpStatus } from './types'
 
 function event(id: string, channel: ChannelEvent['channel'], occurred_at: string): ChannelEvent {
   return {
@@ -93,5 +93,116 @@ describe('dailyActivity', () => {
     const buckets = dailyActivity([broken], 14, now)
 
     expect(buckets.reduce((total, bucket) => total + bucket.count, 0)).toBe(0)
+  })
+})
+
+function followUp(
+  id: string,
+  status: FollowUpStatus,
+  due_at: string | null = null,
+): FollowUp {
+  return {
+    id,
+    customer_id: 'cust',
+    user_id: 'user',
+    title: 'Send the integration overview',
+    source: 'manual',
+    status,
+    due_at,
+    created_at: '2026-08-18T00:00:00Z',
+  }
+}
+
+describe('deriveFollowUpMetrics', () => {
+  const now = new Date('2026-08-18T12:00:00Z')
+
+  it('reports zero for no follow-ups', () => {
+    const metrics = deriveFollowUpMetrics([], now)
+
+    expect(metrics).toEqual({ open: 0, completed: 0, dismissed: 0, nextDueAt: null, overdue: 0 })
+  })
+
+  it('counts only pending items as open', () => {
+    // Completed and dismissed work is done; counting it would overstate the load.
+    const metrics = deriveFollowUpMetrics(
+      [
+        followUp('a', 'pending'),
+        followUp('b', 'completed'),
+        followUp('c', 'dismissed'),
+        followUp('d', 'pending'),
+      ],
+      now,
+    )
+
+    expect(metrics.open).toBe(2)
+    expect(metrics.completed).toBe(1)
+    expect(metrics.dismissed).toBe(1)
+  })
+
+  it('takes the soonest due date among open items', () => {
+    const metrics = deriveFollowUpMetrics(
+      [
+        followUp('later', 'pending', '2026-08-25T00:00:00Z'),
+        followUp('sooner', 'pending', '2026-08-20T00:00:00Z'),
+      ],
+      now,
+    )
+
+    expect(metrics.nextDueAt).toBe('2026-08-20T00:00:00Z')
+  })
+
+  it('ignores a completed item when picking the soonest due date', () => {
+    const metrics = deriveFollowUpMetrics(
+      [
+        followUp('done-but-sooner', 'completed', '2026-08-19T00:00:00Z'),
+        followUp('open-later', 'pending', '2026-08-24T00:00:00Z'),
+      ],
+      now,
+    )
+
+    expect(metrics.nextDueAt).toBe('2026-08-24T00:00:00Z')
+  })
+
+  it('counts overdue open items only', () => {
+    const metrics = deriveFollowUpMetrics(
+      [
+        followUp('past', 'pending', '2026-08-10T00:00:00Z'),
+        followUp('future', 'pending', '2026-08-30T00:00:00Z'),
+        followUp('past-but-done', 'completed', '2026-08-01T00:00:00Z'),
+        followUp('no-date', 'pending'),
+      ],
+      now,
+    )
+
+    expect(metrics.overdue).toBe(1)
+    expect(metrics.open).toBe(3)
+  })
+
+  it('skips an unparseable due date rather than throwing', () => {
+    const metrics = deriveFollowUpMetrics([followUp('bad', 'pending', 'not-a-date')], now)
+
+    expect(metrics.open).toBe(1)
+    expect(metrics.overdue).toBe(0)
+    expect(metrics.nextDueAt).toBeNull()
+  })
+})
+
+describe('countFlaggedNotes', () => {
+  function note(id: string, follow_up_required: boolean): AgentNote {
+    return {
+      id,
+      customer_id: 'cust',
+      user_id: 'user',
+      channel_event_id: null,
+      note: 'text',
+      status: 'pending',
+      follow_up_required,
+      created_at: '2026-08-18T00:00:00Z',
+    }
+  }
+
+  it('counts only notes asking for a next step', () => {
+    expect(countFlaggedNotes([note('a', true), note('b', false), note('c', true)])).toBe(2)
+    expect(countFlaggedNotes([])).toBe(0)
   })
 })

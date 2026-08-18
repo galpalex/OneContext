@@ -1,4 +1,4 @@
-import type { Channel, ChannelEvent } from './types'
+import type { AgentNote, Channel, ChannelEvent, FollowUp } from './types'
 import { daysSince } from './format'
 
 export interface CustomerMetrics {
@@ -92,4 +92,65 @@ export function dailyActivity(
   }
 
   return buckets
+}
+
+export interface FollowUpMetrics {
+  open: number
+  completed: number
+  dismissed: number
+  /** Soonest due date among open follow-ups, or null when none carry one. */
+  nextDueAt: string | null
+  /** Open follow-ups already past their due date. */
+  overdue: number
+}
+
+/**
+ * Follow-up counts derived from stored rows.
+ *
+ * "Open" means pending: completed and dismissed items are done with, and lumping
+ * them together would overstate outstanding work.
+ */
+export function deriveFollowUpMetrics(
+  followUps: FollowUp[],
+  now: Date = new Date(),
+): FollowUpMetrics {
+  let open = 0
+  let completed = 0
+  let dismissed = 0
+  let overdue = 0
+  let nextDueAt: string | null = null
+
+  for (const followUp of followUps) {
+    if (followUp.status === 'completed') {
+      completed += 1
+      continue
+    }
+    if (followUp.status === 'dismissed') {
+      dismissed += 1
+      continue
+    }
+
+    open += 1
+
+    if (followUp.due_at) {
+      const due = new Date(followUp.due_at)
+      if (!Number.isNaN(due.getTime())) {
+        if (due.getTime() < now.getTime()) overdue += 1
+        if (!nextDueAt || followUp.due_at < nextDueAt) nextDueAt = followUp.due_at
+      }
+    }
+  }
+
+  return { open, completed, dismissed, nextDueAt, overdue }
+}
+
+/**
+ * Interactions flagged by an agent as needing follow-up.
+ *
+ * These are not tasks. The count says how many notes asked for a next step, which
+ * is only a prompt: turning one into a task stays a deliberate action, so the
+ * number is reported rather than acted on.
+ */
+export function countFlaggedNotes(notes: AgentNote[]): number {
+  return notes.filter((note) => note.follow_up_required).length
 }

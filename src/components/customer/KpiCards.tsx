@@ -1,6 +1,6 @@
-import type { ChannelEvent, Customer } from '../../lib/types'
+import type { ChannelEvent, Customer, FollowUp } from '../../lib/types'
 import { channelMeta } from '../../lib/channels'
-import { deriveMetrics } from '../../lib/metrics'
+import { deriveFollowUpMetrics, deriveMetrics } from '../../lib/metrics'
 import { daysSince, pluralize } from '../../lib/format'
 import { Icon } from '../ui/Icon'
 
@@ -18,10 +18,25 @@ interface Kpi {
  * A measured zero and an absent measurement are different things and are shown
  * differently: "Total interactions 0" is a fact once channel_events has been
  * queried, whereas "Days since last contact" has no meaning until at least one
- * event exists, and "Open follow-ups" stays unavailable until follow_ups is read.
+ * event exists.
+ *
+ * `historyLoaded` guards that distinction. Until the queries return, an empty
+ * array is not evidence of zero interactions, so everything derived from history
+ * reports Not available rather than briefly flashing a 0 that looks measured.
  */
-export function KpiCards({ customer, events }: { customer: Customer; events: ChannelEvent[] }) {
+export function KpiCards({
+  customer,
+  events,
+  followUps,
+  historyLoaded,
+}: {
+  customer: Customer
+  events: ChannelEvent[]
+  followUps: FollowUp[]
+  historyLoaded: boolean
+}) {
   const metrics = deriveMetrics(events)
+  const followUpMetrics = deriveFollowUpMetrics(followUps)
   const daysInFunnel = daysSince(customer.created_at)
   const daysAtStage = daysSince(customer.stage_changed_at)
 
@@ -44,9 +59,10 @@ export function KpiCards({ customer, events }: { customer: Customer; events: Cha
     },
     {
       label: 'Total interactions',
-      value: metrics.totalInteractions,
-      hint:
-        metrics.totalInteractions === 0
+      value: historyLoaded ? metrics.totalInteractions : null,
+      hint: !historyLoaded
+        ? 'History not loaded'
+        : metrics.totalInteractions === 0
           ? 'No interactions logged yet'
           : `Across ${metrics.activeChannels.length} ${pluralize(
               metrics.activeChannels.length,
@@ -55,21 +71,32 @@ export function KpiCards({ customer, events }: { customer: Customer; events: Cha
     },
     {
       label: 'Active channels',
-      value: metrics.activeChannels.length,
-      hint: activeChannelNames.length > 0 ? activeChannelNames : 'No channel has events yet',
+      value: historyLoaded ? metrics.activeChannels.length : null,
+      hint: !historyLoaded
+        ? 'History not loaded'
+        : activeChannelNames.length > 0
+          ? activeChannelNames
+          : 'No channel has events yet',
     },
     {
       label: 'Days since last contact',
-      value: metrics.daysSinceLastContact,
-      hint:
-        metrics.daysSinceLastContact === null
+      value: historyLoaded ? metrics.daysSinceLastContact : null,
+      hint: !historyLoaded
+        ? 'History not loaded'
+        : metrics.daysSinceLastContact === null
           ? 'No contact recorded yet'
           : 'Since the most recent interaction',
     },
     {
       label: 'Open follow-ups',
-      value: null,
-      hint: 'Needs follow-ups',
+      value: historyLoaded ? followUpMetrics.open : null,
+      hint: !historyLoaded
+        ? 'History not loaded'
+        : followUpMetrics.overdue > 0
+          ? `${followUpMetrics.overdue} past due`
+          : followUpMetrics.open === 0
+            ? 'Nothing outstanding'
+            : 'Awaiting action',
       tone: 'attention',
     },
   ]

@@ -3,10 +3,12 @@ import { Link, useParams } from 'react-router-dom'
 import { getCustomer } from '../data/customers'
 import { listChannelEvents } from '../data/events'
 import { listAgentNotes } from '../data/notes'
+import { listFollowUps, setFollowUpStatus } from '../data/followUps'
 import { describeError, isSupabaseConfigured, supabaseConfigError } from '../lib/supabase'
 import { useAuth } from '../auth/useAuth'
-import type { AgentNote, ChannelEvent, Customer } from '../lib/types'
+import type { AgentNote, ChannelEvent, Customer, FollowUp, FollowUpStatus } from '../lib/types'
 import { buildTimeline } from '../lib/timeline'
+import { countFlaggedNotes } from '../lib/metrics'
 import { CustomerHeader } from '../components/customer/CustomerHeader'
 import { LifecycleBar } from '../components/customer/LifecycleBar'
 import { KpiCards } from '../components/customer/KpiCards'
@@ -15,6 +17,8 @@ import { AiRailPlaceholder } from '../components/customer/AiRailPlaceholder'
 import { ActivityTimeline } from '../components/customer/ActivityTimeline'
 import { AddEventDialog } from '../components/customer/AddEventDialog'
 import { EngagementCard } from '../components/customer/EngagementCard'
+import { NextStepsCard } from '../components/customer/NextStepsCard'
+import { CreateFollowUpForm } from '../components/customer/CreateFollowUpForm'
 import { Card, CardBody, CardHeader } from '../components/ui/Card'
 import { EmptyState } from '../components/states/EmptyState'
 import { ErrorState } from '../components/states/ErrorState'
@@ -37,10 +41,13 @@ export function CustomerWorkspacePage() {
 
   const [events, setEvents] = useState<ChannelEvent[]>([])
   const [notes, setNotes] = useState<AgentNote[]>([])
+  const [followUps, setFollowUps] = useState<FollowUp[]>([])
   const [eventsState, setEventsState] = useState<EventsState>('loading')
   const [eventsError, setEventsError] = useState<string | null>(null)
 
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [followUpFormOpen, setFollowUpFormOpen] = useState(false)
+  const [statusPendingId, setStatusPendingId] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
 
   const loadCustomer = useCallback(async () => {
@@ -80,12 +87,14 @@ export function CustomerWorkspacePage() {
     setEventsError(null)
 
     try {
-      const [loadedEvents, loadedNotes] = await Promise.all([
+      const [loadedEvents, loadedNotes, loadedFollowUps] = await Promise.all([
         listChannelEvents(id),
         listAgentNotes(id),
+        listFollowUps(id),
       ])
       setEvents(loadedEvents)
       setNotes(loadedNotes)
+      setFollowUps(loadedFollowUps)
       setEventsState('ready')
     } catch (caught) {
       setEventsError(describeError(caught))
@@ -102,6 +111,27 @@ export function CustomerWorkspacePage() {
   }, [loadHistory])
 
   const timeline = buildTimeline(events, notes)
+
+  /**
+   * Completing or dismissing a follow-up updates the stored row and replaces it in
+   * place, so the metric and the list move together without refetching the whole
+   * history.
+   */
+  async function changeFollowUpStatus(followUpId: string, status: FollowUpStatus) {
+    setStatusPendingId(followUpId)
+
+    try {
+      const updated = await setFollowUpStatus(followUpId, status)
+      setFollowUps((current) =>
+        current.map((item) => (item.id === updated.id ? updated : item)),
+      )
+    } catch (caught) {
+      setEventsError(describeError(caught))
+      setEventsState('error')
+    } finally {
+      setStatusPendingId(null)
+    }
+  }
 
   if (state === 'loading') {
     return (
@@ -217,9 +247,26 @@ export function CustomerWorkspacePage() {
             ))}
           </div>
           <CardBody padding="tight">
-            <KpiCards customer={customer} events={events} />
+            <KpiCards
+              customer={customer}
+              events={events}
+              followUps={followUps}
+              historyLoaded={eventsState === 'ready'}
+            />
           </CardBody>
         </Card>
+
+        <NextStepsCard
+          followUps={followUps}
+          flaggedNotes={countFlaggedNotes(notes)}
+          state={eventsState}
+          error={eventsError}
+          ownerEmail={user?.email ?? 'Signed-in user'}
+          pendingId={statusPendingId}
+          onRetry={() => void loadHistory()}
+          onCreate={() => setFollowUpFormOpen(true)}
+          onSetStatus={(followUpId, status) => void changeFollowUpStatus(followUpId, status)}
+        />
 
         <EngagementCard events={events} />
 
@@ -285,6 +332,19 @@ export function CustomerWorkspacePage() {
       <div className="oc-workspace__ai">
         <AiRailPlaceholder />
       </div>
+
+      {followUpFormOpen && customer ? (
+        <CreateFollowUpForm
+          customerId={customer.id}
+          customerName={customer.name}
+          onClose={() => setFollowUpFormOpen(false)}
+          onCreated={(created) => {
+            setFollowUpFormOpen(false)
+            setFollowUps((current) => [created, ...current])
+            setSuccessMessage(`Follow-up "${created.title}" was added to Next steps.`)
+          }}
+        />
+      ) : null}
 
       {dialogOpen ? (
         <AddEventDialog
