@@ -1,8 +1,23 @@
-# Day 2 evidence — slice 1 (Web channel)
+# Day 2 evidence — slices 1 and 2
 
 Screenshots backing the Day 2 gate in [PLAN.md](../../../PLAN.md), captured
-2026-08-18. Slice 1 covers the Web channel only; WhatsApp, Email and Phone follow
-in later slices.
+2026-08-18. Slice 1 covers the Web channel, slice 2 adds WhatsApp and Email.
+Phone follows in slice 3.
+
+## Slice 2 — WhatsApp and Email
+
+| File | What it proves |
+| --- | --- |
+| `whatsapp inbound.png` | WhatsApp form: direction selector present, subject field correctly absent. **Also records the state-bleed bug** — the Message box still holds text typed for the Web channel |
+| `whatsapp logged.png` | WhatsApp event stored: green dot, Inbound badge, no subject line, `Active channels` 2 (Web, WhatsApp), engagement `Web 2 / WhatsApp 1` |
+| `email outbound form.png` | Email form: direction set to **Outbound**, plus subject and body. The body visibly starts mid-word ("m ipsum dolor…"), which is the same bleed bug |
+| `email logged, three channels.png` | Email event stored: orange dot, **Outbound** badge, subject and body rendered from the `body` jsonb key. `Total interactions` 4, `Active channels` 3, engagement `Web 2 / WhatsApp 1 / Email 1 / Phone 0`, `Open follow-ups` still Not available |
+
+The bleed bug those two form screenshots captured was fixed straight after:
+switching channel now clears the form, while re-clicking the already selected
+channel leaves input untouched.
+
+## Slice 1 — Web channel
 
 | File | What it proves |
 | --- | --- |

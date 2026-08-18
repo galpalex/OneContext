@@ -70,8 +70,8 @@ Make the OneContext customer workspace useful: every channel produces a real eve
 - [x] Sort by `occurred_at` / `created_at`. — newest first; a backdated event sorted below a newer one.
 - [x] Add channel badges and icons.
 - [x] Build Web event form.
-- [ ] Build WhatsApp simulation.
-- [ ] Build Email logging form.
+- [x] Build WhatsApp simulation.
+- [x] Build Email logging form.
 - [ ] Build Phone customer-service note form.
 - [ ] Add type, direction and status fields. — type and direction done; status belongs to the phone note.
 - [x] Add event success feedback. — green "Event logged" banner.
@@ -95,8 +95,9 @@ Make the OneContext customer workspace useful: every channel produces a real eve
 
 See [`docs/evidence/day2/`](docs/evidence/day2/).
 
+- [x] Slice 2, WhatsApp and Email — `whatsapp inbound.png`, `whatsapp logged.png`, `email outbound form.png`, `email logged, three channels.png`.
 - [x] Slice 1, Web channel — `add event.png`, `event logged.png`, `event logged bottom.png`, `add event future validation.png`, `2 events, earlier is at top.png`.
-- [ ] Timeline with all four channels — Web only so far.
+- [ ] Timeline with all four channels — Web, WhatsApp and Email done; Phone pending.
 - [ ] Phone note showing customer-service context.
 - [ ] Next steps area.
 - [x] Commit/PR reference — `b7e4f3e` on [github.com/galpalex/OneContext](https://github.com/galpalex/OneContext).

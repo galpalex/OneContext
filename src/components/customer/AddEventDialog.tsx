@@ -89,12 +89,24 @@ export function AddEventDialog({
 
   const shape = SHAPE[channel]
 
+  /**
+   * Switching channel starts a genuinely empty form.
+   *
+   * Carrying subject and body across channels let text typed for one channel be
+   * submitted as another, which is worse than losing a draft. Re-clicking the
+   * channel already selected is ignored, so a stray click cannot wipe input.
+   */
   function selectChannel(next: Channel) {
+    if (next === channel) return
+
     setChannel(next)
+    setType(DEFAULT_TYPE)
+    setDirection('inbound')
+    setSubject('')
+    setBody('')
+    setOccurredAt(nowLocalInput())
     setFieldErrors({})
     setSubmitError(null)
-    // Web has no direction choice; leaving a stale "outbound" would be wrong.
-    if (next === 'web') setDirection('inbound')
   }
 
   function validate(): FieldErrors {
