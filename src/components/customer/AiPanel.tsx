@@ -49,6 +49,7 @@ export function AiPanel({ customerId, events, onCreateFollowUp }: AiPanelProps) 
   const [lastFocus, setLastFocus] = useState<InsightFocus>('summary')
   const [persisted, setPersisted] = useState(true)
   const [droppedIds, setDroppedIds] = useState<string[]>([])
+  const [confidenceCapped, setConfidenceCapped] = useState(false)
 
   /*
    * Restoring the last stored insight is a background convenience, so it must
@@ -95,6 +96,7 @@ export function AiPanel({ customerId, events, onCreateFollowUp }: AiPanelProps) 
       setStatus('generating')
       setError(null)
       setDroppedIds([])
+      setConfidenceCapped(false)
 
       try {
         const result = await generateInsight(customerId, focus)
@@ -102,6 +104,7 @@ export function AiPanel({ customerId, events, onCreateFollowUp }: AiPanelProps) 
         setGeneratedAt(result.created_at)
         setPersisted(result.persisted)
         setDroppedIds(result.dropped_source_ids ?? [])
+        setConfidenceCapped(Boolean(result.confidence_capped))
         setStatus('ready')
       } catch (caught) {
         setError(describeError(caught))
@@ -205,6 +208,13 @@ export function AiPanel({ customerId, events, onCreateFollowUp }: AiPanelProps) 
                   <span className="oc-meta">{formatDateTime(generatedAt)}</span>
                 ) : null}
               </div>
+
+              {confidenceCapped ? (
+                <p className="oc-insight__capped">
+                  <Icon name="info" size={13} />
+                  Confidence was limited by how little history is stored for this customer.
+                </p>
+              ) : null}
 
               <section className="oc-insight__section">
                 <h3 className="oc-label">Summary</h3>

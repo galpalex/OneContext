@@ -4,8 +4,8 @@ import { createClient } from '@supabase/supabase-js'
 // rather than bundling its siblings, and package.json sets "type": "module", so
 // Node's ESM loader resolves this specifier literally at runtime. Extensionless
 // imports fail to load the whole function. TypeScript maps .js to the .ts source.
-import { validateInsight } from './_shared/insight.js'
-import type { InsightFocus } from './_shared/insight.js'
+import { capConfidence, validateInsight } from './_shared/insight.js'
+import type { Evidence, InsightFocus } from './_shared/insight.js'
 
 /**
  * OneContext AI insight generation.
@@ -60,8 +60,12 @@ const SYSTEM_INSTRUCTION = [
   'the stored history, `next_action` is your recommendation.',
   'source_event_ids must contain only ids present in the supplied events, and only those you',
   'actually relied on.',
-  'If the history is empty or too thin to judge, say so plainly and set confidence to "low"',
-  'rather than filling the gap.',
+  'Set confidence from how much stored history supports your recommendation, not from how',
+  'clearly you can read one message: a single interaction is "low" however unambiguous it is,',
+  'a few on one channel is at most "medium", and "high" needs several interactions across',
+  'more than one channel.',
+  'If the history is empty or too thin to judge, say so plainly, set confidence to "low" and',
+  'do not fill the gap.',
   'All timestamps are already in the local timezone of the reader; quote them as given',
   'and do not convert them.',
   'Write in plain British English, no marketing language, no bullet characters.',
@@ -331,6 +335,30 @@ export default async function handler(request: VercelRequest, response: VercelRe
   }
 
   /*
+   * Bound the stated confidence by what the history can actually support. The
+   * prompt asks for this too, but a prompt is a request and this is a guarantee -
+   * and the stored value must match what the user was shown.
+   */
+  const evidence: Evidence = {
+    eventCount: events.length,
+    channelCount: new Set(events.map((event) => String(event.channel))).size,
+    noteCount: (notesResult.data ?? []).length,
+  }
+  const cappedConfidence = capConfidence(insight.confidence, evidence)
+  const confidenceCapped = cappedConfidence !== insight.confidence
+
+  if (confidenceCapped) {
+    console.warn(
+      'insight: confidence lowered from %s to %s on %d events across %d channels',
+      insight.confidence,
+      cappedConfidence,
+      evidence.eventCount,
+      evidence.channelCount,
+    )
+    insight.confidence = cappedConfidence
+  }
+
+  /*
    * Persist only after validation. No user_id is sent: Postgres fills auth.uid()
    * and the RLS policy re-verifies both the owner and that the customer belongs to
    * them, exactly as the browser paths do.
@@ -358,6 +386,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
       created_at: null,
       persisted: false,
       dropped_source_ids: droppedSourceIds,
+      confidence_capped: confidenceCapped,
     })
   }
 
@@ -367,5 +396,6 @@ export default async function handler(request: VercelRequest, response: VercelRe
     created_at: saved.created_at,
     persisted: true,
     dropped_source_ids: droppedSourceIds,
+    confidence_capped: confidenceCapped,
   })
 }

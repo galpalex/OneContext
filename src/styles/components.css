@@ -1844,3 +1844,12 @@
   object-fit: cover;
   display: block;
 }
+
+/* Explains a confidence the evidence would not support. */
+.oc-insight__capped {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--oc-space-1);
+  font-size: var(--oc-text-2xs);
+  color: var(--oc-text-muted);
+}

@@ -9,6 +9,8 @@ export interface GeneratedInsight {
   persisted: boolean
   /** Ids the model cited that do not exist. Surfaced rather than hidden. */
   dropped_source_ids: string[]
+  /** True when the stored history could not support the confidence claimed. */
+  confidence_capped: boolean
 }
 
 export interface StoredInsight {

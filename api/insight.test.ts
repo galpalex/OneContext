@@ -258,6 +258,43 @@ describe('POST /api/insight', () => {
     expect(prompt).toContain('UTC')
   })
 
+  it('lowers a confidence the stored history cannot support, and stores the lowered value', async () => {
+    // One event, one channel: "medium" from the model must become "low".
+    tableResults['channel_events'] = {
+      data: [{ id: 'evt-1', channel: 'web', occurred_at: '2026-08-17T10:00:00Z' }],
+      error: null,
+    }
+
+    const response = mockResponse()
+    await handler(request(), response as never)
+
+    expect(response.statusCode).toBe(200)
+    const body = response.body as { insight: { confidence: string }; confidence_capped: boolean }
+    expect(body.insight.confidence).toBe('low')
+    expect(body.confidence_capped).toBe(true)
+    // What was shown and what was stored must agree.
+    expect(insertCalls[0]!['confidence']).toBe('low')
+  })
+
+  it('leaves confidence alone when the history supports it', async () => {
+    tableResults['channel_events'] = {
+      data: [
+        { id: 'evt-1', channel: 'web', occurred_at: '2026-08-10T10:00:00Z' },
+        { id: 'evt-2', channel: 'email', occurred_at: '2026-08-11T10:00:00Z' },
+        { id: 'evt-3', channel: 'phone', occurred_at: '2026-08-12T10:00:00Z' },
+        { id: 'evt-4', channel: 'whatsapp', occurred_at: '2026-08-13T10:00:00Z' },
+      ],
+      error: null,
+    }
+
+    const response = mockResponse()
+    await handler(request(), response as never)
+
+    const body = response.body as { insight: { confidence: string }; confidence_capped: boolean }
+    expect(body.insight.confidence).toBe('medium')
+    expect(body.confidence_capped).toBe(false)
+  })
+
   it('stores the insight and filters citations to supplied events', async () => {
     const response = mockResponse()
     await handler(request(), response as never)

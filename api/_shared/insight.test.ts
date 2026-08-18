@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { validateInsight } from './insight'
+import { capConfidence, confidenceCeiling, validateInsight } from './insight'
 
 const SUPPLIED = ['evt-1', 'evt-2', 'evt-3']
 
@@ -133,5 +133,55 @@ describe('validateInsight', () => {
       expect(result.insight.topics).toEqual(['pricing', 'integration'])
       expect(result.insight.source_event_ids).toEqual(['evt-1'])
     }
+  })
+})
+
+describe('confidenceCeiling', () => {
+  const evidence = (eventCount: number, channelCount: number, noteCount = 0) => ({
+    eventCount,
+    channelCount,
+    noteCount,
+  })
+
+  it('allows only low for no history', () => {
+    expect(confidenceCeiling(evidence(0, 0))).toBe('low')
+  })
+
+  it('allows only low for a single interaction, however clear it reads', () => {
+    // The real case: one unambiguous web enquiry had the model answering "high".
+    expect(confidenceCeiling(evidence(1, 1))).toBe('low')
+  })
+
+  it('allows at most medium for a few interactions', () => {
+    expect(confidenceCeiling(evidence(3, 2))).toBe('medium')
+  })
+
+  it('allows at most medium when everything came through one channel', () => {
+    expect(confidenceCeiling(evidence(9, 1))).toBe('medium')
+  })
+
+  it('allows high once there is breadth as well as volume', () => {
+    expect(confidenceCeiling(evidence(6, 3))).toBe('high')
+  })
+})
+
+describe('capConfidence', () => {
+  const thin = { eventCount: 1, channelCount: 1, noteCount: 0 }
+  const rich = { eventCount: 8, channelCount: 4, noteCount: 2 }
+
+  it('lowers a claim the history cannot support', () => {
+    expect(capConfidence('high', thin)).toBe('low')
+    expect(capConfidence('medium', thin)).toBe('low')
+  })
+
+  it('never raises a modest claim', () => {
+    // A cautious model stays cautious; the cap is a ceiling, not a target.
+    expect(capConfidence('low', rich)).toBe('low')
+    expect(capConfidence('medium', rich)).toBe('medium')
+  })
+
+  it('leaves a justified claim alone', () => {
+    expect(capConfidence('high', rich)).toBe('high')
+    expect(capConfidence('low', thin)).toBe('low')
   })
 })

@@ -147,3 +147,37 @@ export function validateInsight(raw: unknown, suppliedEventIds: string[]): Valid
  * by the function and the browser, rather than two copies of security-critical
  * logic free to drift apart. Vite has no trouble importing it from src/.
  */
+
+/** What the stored history actually contains, used to bound confidence. */
+export interface Evidence {
+  eventCount: number
+  channelCount: number
+  noteCount: number
+}
+
+const CONFIDENCE_ORDER: readonly Confidence[] = ['low', 'medium', 'high']
+
+/**
+ * The highest confidence the stored history can justify.
+ *
+ * Confidence should track how much evidence supports a recommendation, not how
+ * clearly a single message reads. A model asked to summarise one unambiguous
+ * enquiry will happily answer "high" - accurate about the message, misleading
+ * about the account - so the ceiling is computed here rather than requested in the
+ * prompt, where it could be reasoned away.
+ */
+export function confidenceCeiling(evidence: Evidence): Confidence {
+  // One interaction, or none, can never support more than a tentative read.
+  if (evidence.eventCount <= 1) return 'low'
+
+  // A handful on a single channel is still one side of a conversation.
+  if (evidence.eventCount <= 3 || evidence.channelCount < 2) return 'medium'
+
+  return 'high'
+}
+
+/** The lower of what the model claimed and what the evidence allows. */
+export function capConfidence(stated: Confidence, evidence: Evidence): Confidence {
+  const ceiling = confidenceCeiling(evidence)
+  return CONFIDENCE_ORDER.indexOf(stated) <= CONFIDENCE_ORDER.indexOf(ceiling) ? stated : ceiling
+}
