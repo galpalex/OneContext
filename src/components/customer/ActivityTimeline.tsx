@@ -151,7 +151,8 @@ function EventItem({
   const occurred = formatDateTime(event.occurred_at)
 
   return (
-    <li className="oc-timeline__item">
+    // Anchor target for the AI panel's source references.
+    <li className="oc-timeline__item" id={`event-${event.id}`}>
       <div className="oc-timeline__rail" aria-hidden="true">
         <span className={`oc-timeline__dot oc-chan--${meta.modifier}`}>
           <Icon name={meta.icon} size={15} />

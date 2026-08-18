@@ -6,14 +6,21 @@ import { listAgentNotes } from '../data/notes'
 import { listFollowUps, setFollowUpStatus } from '../data/followUps'
 import { describeError, isSupabaseConfigured, supabaseConfigError } from '../lib/supabase'
 import { useAuth } from '../auth/useAuth'
-import type { AgentNote, ChannelEvent, Customer, FollowUp, FollowUpStatus } from '../lib/types'
+import type {
+  AgentNote,
+  ChannelEvent,
+  Customer,
+  FollowUp,
+  FollowUpSource,
+  FollowUpStatus,
+} from '../lib/types'
 import { buildTimeline } from '../lib/timeline'
 import { countFlaggedNotes } from '../lib/metrics'
 import { CustomerHeader } from '../components/customer/CustomerHeader'
 import { LifecycleBar } from '../components/customer/LifecycleBar'
 import { KpiCards } from '../components/customer/KpiCards'
 import { ContextRail } from '../components/customer/ContextRail'
-import { AiRailPlaceholder } from '../components/customer/AiRailPlaceholder'
+import { AiPanel } from '../components/customer/AiPanel'
 import { ActivityTimeline } from '../components/customer/ActivityTimeline'
 import { AddEventDialog } from '../components/customer/AddEventDialog'
 import { EngagementCard } from '../components/customer/EngagementCard'
@@ -47,6 +54,10 @@ export function CustomerWorkspacePage() {
 
   const [dialogOpen, setDialogOpen] = useState(false)
   const [followUpFormOpen, setFollowUpFormOpen] = useState(false)
+  const [followUpDraft, setFollowUpDraft] = useState<{ title: string; source: FollowUpSource }>({
+    title: '',
+    source: 'manual',
+  })
   const [statusPendingId, setStatusPendingId] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
 
@@ -264,7 +275,10 @@ export function CustomerWorkspacePage() {
           ownerEmail={user?.email ?? 'Signed-in user'}
           pendingId={statusPendingId}
           onRetry={() => void loadHistory()}
-          onCreate={() => setFollowUpFormOpen(true)}
+          onCreate={() => {
+            setFollowUpDraft({ title: '', source: 'manual' })
+            setFollowUpFormOpen(true)
+          }}
           onSetStatus={(followUpId, status) => void changeFollowUpStatus(followUpId, status)}
         />
 
@@ -330,13 +344,23 @@ export function CustomerWorkspacePage() {
       </div>
 
       <div className="oc-workspace__ai">
-        <AiRailPlaceholder />
+        <AiPanel
+          customerId={customer.id}
+          events={events}
+          onCreateFollowUp={(title) => {
+            // The recommendation only pre-fills a form; the user still confirms.
+            setFollowUpDraft({ title, source: 'ai_recommendation' })
+            setFollowUpFormOpen(true)
+          }}
+        />
       </div>
 
       {followUpFormOpen && customer ? (
         <CreateFollowUpForm
           customerId={customer.id}
           customerName={customer.name}
+          initialTitle={followUpDraft.title}
+          source={followUpDraft.source}
           onClose={() => setFollowUpFormOpen(false)}
           onCreated={(created) => {
             setFollowUpFormOpen(false)

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { createFollowUp } from '../../data/followUps'
 import { describeError } from '../../lib/supabase'
-import type { FollowUp } from '../../lib/types'
+import type { FollowUp, FollowUpSource } from '../../lib/types'
 import { Button } from '../ui/Button'
 import { Field } from '../ui/Field'
 import { Icon } from '../ui/Icon'
@@ -13,6 +13,12 @@ interface CreateFollowUpFormProps {
   customerName: string
   /** Pre-filled title, e.g. from an accepted AI recommendation. */
   initialTitle?: string
+  /**
+   * Records where the task came from. 'ai_recommendation' is only ever set on this
+   * path - the user reaching this form and submitting it - so an AI suggestion
+   * cannot become a stored task without a deliberate confirmation.
+   */
+  source?: FollowUpSource
   onClose: () => void
   onCreated: (followUp: FollowUp) => void
 }
@@ -23,6 +29,7 @@ export function CreateFollowUpForm({
   customerId,
   customerName,
   initialTitle = '',
+  source = 'manual',
   onClose,
   onCreated,
 }: CreateFollowUpFormProps) {
@@ -61,9 +68,7 @@ export function CreateFollowUpForm({
       const created = await createFollowUp({
         customer_id: customerId,
         title: title.trim(),
-        // Day 2 creates manual follow-ups only; Day 3 adds 'ai_recommendation'
-        // after an explicit confirmation.
-        source: 'manual',
+        source,
         due_at: dueAt.length > 0 ? new Date(dueAt).toISOString() : null,
       })
 
@@ -78,7 +83,11 @@ export function CreateFollowUpForm({
   return (
     <Modal
       title="Create follow-up"
-      subtitle={`A task against ${customerName}. Unlike an interaction, this records what still needs doing.`}
+      subtitle={
+        source === 'ai_recommendation'
+          ? `Confirm this task against ${customerName}. Edit it first if the wording is not right.`
+          : `A task against ${customerName}. Unlike an interaction, this records what still needs doing.`
+      }
       onClose={onClose}
       busy={submitting}
       footer={

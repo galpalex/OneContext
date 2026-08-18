@@ -1679,3 +1679,154 @@
     width: 100%;
   }
 }
+
+/* --- OneContext AI result ------------------------------------------------ */
+
+.oc-ai__prompt.is-active {
+  display: flex;
+  align-items: center;
+  gap: var(--oc-space-2);
+  color: var(--oc-primary-800);
+  border-color: var(--oc-primary-200);
+  background: var(--oc-surface);
+  cursor: pointer;
+}
+
+.oc-ai__prompt.is-active:hover:not(:disabled) {
+  background: var(--oc-primary-050);
+  border-color: var(--oc-primary-500);
+}
+
+.oc-ai__prompt.is-active:disabled {
+  color: var(--oc-text-faint);
+  cursor: not-allowed;
+}
+
+.oc-insight {
+  display: flex;
+  flex-direction: column;
+  gap: var(--oc-space-4);
+  padding-top: var(--oc-space-2);
+  border-top: 1px solid var(--oc-border);
+}
+
+.oc-insight__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--oc-space-2);
+}
+
+.oc-insight__text {
+  font-size: var(--oc-text-base);
+  line-height: var(--oc-leading-relaxed);
+  color: var(--oc-neutral-700);
+}
+
+.oc-insight__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--oc-space-2);
+  font-size: var(--oc-text-base);
+  color: var(--oc-neutral-700);
+}
+
+.oc-insight__list li {
+  position: relative;
+  padding-left: var(--oc-space-4);
+}
+
+/* Marker drawn rather than typed, so it is not read out as content. */
+.oc-insight__list li::before {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 8px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--oc-attention-600);
+}
+
+/* The recommendation is set apart from the observed facts above it. */
+.oc-insight__action {
+  padding: var(--oc-space-3);
+  border: 1px solid var(--oc-primary-200);
+  border-radius: var(--oc-radius-md);
+  background: var(--oc-primary-050);
+}
+
+.oc-insight__confirm {
+  font-size: var(--oc-text-2xs);
+  color: var(--oc-primary-800);
+}
+
+.oc-insight__sources {
+  display: flex;
+  flex-direction: column;
+  gap: var(--oc-space-1);
+}
+
+.oc-insight__source {
+  display: flex;
+  align-items: center;
+  gap: var(--oc-space-2);
+  padding: var(--oc-space-2);
+  border: 1px solid var(--oc-border);
+  border-radius: var(--oc-radius-sm);
+  background: var(--oc-surface);
+  font-size: var(--oc-text-xs);
+  color: var(--oc-neutral-700);
+  text-decoration: none;
+}
+
+.oc-insight__source:hover {
+  border-color: var(--oc-primary-500);
+  background: var(--oc-primary-050);
+  text-decoration: none;
+}
+
+.oc-insight__source-dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  flex: none;
+  border-radius: 50%;
+  color: var(--oc-text-on-accent);
+}
+
+.oc-insight__source-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.oc-insight__source-date {
+  flex: none;
+  color: var(--oc-text-faint);
+}
+
+/* Anchored timeline entries flash briefly so the jump target is obvious. */
+.oc-timeline__item:target {
+  animation: oc-highlight 1.6s ease-out;
+}
+
+@keyframes oc-highlight {
+  0%,
+  40% {
+    background: var(--oc-primary-050);
+  }
+  100% {
+    background: transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .oc-timeline__item:target {
+    animation: none;
+    background: var(--oc-primary-050);
+  }
+}
