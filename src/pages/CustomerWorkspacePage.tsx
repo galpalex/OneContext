@@ -1,14 +1,18 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { getCustomer } from '../data/customers'
+import { listChannelEvents } from '../data/events'
 import { describeError, isSupabaseConfigured, supabaseConfigError } from '../lib/supabase'
 import { useAuth } from '../auth/useAuth'
-import type { Customer } from '../lib/types'
+import type { ChannelEvent, Customer } from '../lib/types'
 import { CustomerHeader } from '../components/customer/CustomerHeader'
 import { LifecycleBar } from '../components/customer/LifecycleBar'
 import { KpiCards } from '../components/customer/KpiCards'
 import { ContextRail } from '../components/customer/ContextRail'
 import { AiRailPlaceholder } from '../components/customer/AiRailPlaceholder'
+import { ActivityTimeline } from '../components/customer/ActivityTimeline'
+import { AddEventDialog } from '../components/customer/AddEventDialog'
+import { EngagementCard } from '../components/customer/EngagementCard'
 import { Card, CardBody, CardHeader } from '../components/ui/Card'
 import { EmptyState } from '../components/states/EmptyState'
 import { ErrorState } from '../components/states/ErrorState'
@@ -17,17 +21,26 @@ import { Button } from '../components/ui/Button'
 import { Icon } from '../components/ui/Icon'
 
 type LoadState = 'loading' | 'ready' | 'missing' | 'error'
+type EventsState = 'loading' | 'ready' | 'error'
 
 const TABS = ['Overview', 'Activity', 'Customer needs', 'History', 'Notes'] as const
 
 export function CustomerWorkspacePage() {
   const { id } = useParams<{ id: string }>()
   const { user } = useAuth()
+
   const [customer, setCustomer] = useState<Customer | null>(null)
   const [state, setState] = useState<LoadState>('loading')
   const [error, setError] = useState<string | null>(null)
 
-  const load = useCallback(async () => {
+  const [events, setEvents] = useState<ChannelEvent[]>([])
+  const [eventsState, setEventsState] = useState<EventsState>('loading')
+  const [eventsError, setEventsError] = useState<string | null>(null)
+
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
+
+  const loadCustomer = useCallback(async () => {
     if (!isSupabaseConfigured) {
       setError(supabaseConfigError)
       setState('error')
@@ -52,9 +65,32 @@ export function CustomerWorkspacePage() {
     }
   }, [id])
 
+  /**
+   * Events load separately from the customer: a failed event query should show a
+   * retry inside the timeline card, not blank out the whole workspace.
+   */
+  const loadEvents = useCallback(async () => {
+    if (!id || !isSupabaseConfigured) return
+
+    setEventsState('loading')
+    setEventsError(null)
+
+    try {
+      setEvents(await listChannelEvents(id))
+      setEventsState('ready')
+    } catch (caught) {
+      setEventsError(describeError(caught))
+      setEventsState('error')
+    }
+  }, [id])
+
   useEffect(() => {
-    void load()
-  }, [load])
+    void loadCustomer()
+  }, [loadCustomer])
+
+  useEffect(() => {
+    void loadEvents()
+  }, [loadEvents])
 
   if (state === 'loading') {
     return (
@@ -99,7 +135,7 @@ export function CustomerWorkspacePage() {
           <ErrorState
             title="This customer could not be loaded"
             message={error ?? 'Unknown error.'}
-            onRetry={isSupabaseConfigured ? () => void load() : undefined}
+            onRetry={isSupabaseConfigured ? () => void loadCustomer() : undefined}
           />
         </CardBody>
       </Card>
@@ -129,14 +165,23 @@ export function CustomerWorkspacePage() {
   return (
     <div className="oc-workspace">
       <div className="oc-workspace__full">
-        <CustomerHeader customer={customer} />
+        <CustomerHeader customer={customer} onAddEvent={() => setDialogOpen(true)} />
       </div>
 
+      {successMessage ? (
+        <div className="oc-workspace__full">
+          <div className="oc-banner oc-banner--positive" role="status">
+            <Icon name="check" size={18} />
+            <div>
+              <p className="oc-banner__title">Event logged</p>
+              <p>{successMessage}</p>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       <div className="oc-workspace__full">
-        <LifecycleBar
-          stage={customer.lifecycle_stage}
-          stageChangedAt={customer.stage_changed_at}
-        />
+        <LifecycleBar stage={customer.lifecycle_stage} stageChangedAt={customer.stage_changed_at} />
       </div>
 
       <div className="oc-workspace__rail">
@@ -161,50 +206,90 @@ export function CustomerWorkspacePage() {
             ))}
           </div>
           <CardBody padding="tight">
-            <KpiCards customer={customer} />
+            <KpiCards customer={customer} events={events} />
           </CardBody>
         </Card>
 
-        <Card labelledBy="engagement-title">
-          <CardHeader
-            title="Engagement"
-            titleId="engagement-title"
-            icon={<Icon name="chart" size={16} />}
-          />
-          <CardBody>
-            <p className="oc-na">
-              <Icon name="info" size={14} />
-              Not available - engagement counts are derived from channel events, and none are stored
-              for this customer yet.
-            </p>
-          </CardBody>
-        </Card>
+        <EngagementCard events={events} />
 
         <Card labelledBy="activity-title">
           <CardHeader
             title="Activity timeline"
             titleId="activity-title"
             icon={<Icon name="inbox" size={16} />}
+            actions={
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setDialogOpen(true)}
+                iconLeft={<Icon name="plus" size={14} />}
+              >
+                Add event
+              </Button>
+            }
           />
-          <CardBody>
-            <EmptyState
-              icon="inbox"
-              title="No interactions recorded yet"
-              body="Web requests, WhatsApp messages, emails and phone notes will appear here as one chronological history. Event capture is added in the next iteration."
-              actions={
-                <Button variant="secondary" disabled title="Available in a later iteration">
-                  Add event
-                </Button>
-              }
-              inline
-            />
-          </CardBody>
+
+          {eventsState === 'loading' ? (
+            <CardBody>
+              <p className="oc-visually-hidden" role="status">
+                Loading interactions…
+              </p>
+              <SkeletonBlock lines={4} />
+            </CardBody>
+          ) : eventsState === 'error' ? (
+            <CardBody>
+              <ErrorState
+                title="Interactions could not be loaded"
+                message={eventsError ?? 'Unknown error.'}
+                onRetry={() => void loadEvents()}
+                inline
+              />
+            </CardBody>
+          ) : events.length === 0 ? (
+            <CardBody>
+              <EmptyState
+                icon="inbox"
+                title="No interactions recorded yet"
+                body="Log the first web request, and it will appear here as the start of one chronological history across every channel."
+                actions={
+                  <Button
+                    variant="primary"
+                    onClick={() => setDialogOpen(true)}
+                    iconLeft={<Icon name="plus" />}
+                  >
+                    Add event
+                  </Button>
+                }
+                inline
+              />
+            </CardBody>
+          ) : (
+            <CardBody padding="flush">
+              <ActivityTimeline events={events} />
+            </CardBody>
+          )}
         </Card>
       </div>
 
       <div className="oc-workspace__ai">
         <AiRailPlaceholder />
       </div>
+
+      {dialogOpen ? (
+        <AddEventDialog
+          customerId={customer.id}
+          customerName={customer.name}
+          onClose={() => setDialogOpen(false)}
+          onCreated={(created) => {
+            setDialogOpen(false)
+            setSuccessMessage(
+              `${created.subject ?? 'Web request'} was added to ${customer.name}'s timeline.`,
+            )
+            // Re-read from the server so the timeline and metrics reflect stored truth.
+            void loadEvents()
+          }}
+        />
+      ) : null}
     </div>
   )
 }

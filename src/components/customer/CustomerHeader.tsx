@@ -7,12 +7,17 @@ import { Button } from '../ui/Button'
 import { Card } from '../ui/Card'
 import { Icon } from '../ui/Icon'
 
+interface CustomerHeaderProps {
+  customer: Customer
+  onAddEvent: () => void
+}
+
 /**
- * Workspace header. The action slots from FEATURESPEC are present but disabled:
- * event capture and insight generation belong to the next iterations, and a
- * button that looks live but does nothing would be worse than a disabled one.
+ * Workspace header. Add event is live; insight generation stays disabled until
+ * the serverless function exists, since a button that looks live but does nothing
+ * would be worse than a disabled one.
  */
-export function CustomerHeader({ customer }: { customer: Customer }) {
+export function CustomerHeader({ customer, onAddEvent }: CustomerHeaderProps) {
   const created = formatDate(customer.created_at)
 
   return (
@@ -35,12 +40,7 @@ export function CustomerHeader({ customer }: { customer: Customer }) {
             <Button variant="secondary" disabled title="Available in a later iteration">
               Generate insight
             </Button>
-            <Button
-              variant="primary"
-              disabled
-              title="Available in a later iteration"
-              iconLeft={<Icon name="plus" />}
-            >
+            <Button variant="primary" onClick={onAddEvent} iconLeft={<Icon name="plus" />}>
               Add event
             </Button>
           </div>

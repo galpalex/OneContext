@@ -99,3 +99,19 @@ export interface FollowUp {
   due_at: string | null
   created_at: string
 }
+
+/**
+ * Fields the browser may send when logging a channel event.
+ * `user_id` is absent for the same reason as NewCustomerInput: Postgres fills it
+ * from `default auth.uid()` and the RLS policy re-verifies both the owner and
+ * that the referenced customer belongs to the caller.
+ */
+export interface NewChannelEventInput {
+  customer_id: string
+  channel: Channel
+  type: string | null
+  direction: Direction | null
+  subject: string | null
+  content: Record<string, unknown>
+  occurred_at: string
+}
