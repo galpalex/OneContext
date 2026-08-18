@@ -1581,3 +1581,14 @@
   font-weight: var(--oc-weight-medium);
   color: var(--oc-neutral-700);
 }
+
+/* Team-facing note attached to an interaction, visually set apart from it. */
+.oc-internal-note {
+  display: flex;
+  flex-direction: column;
+  gap: var(--oc-space-1);
+  padding: var(--oc-space-3);
+  border-left: 3px solid var(--oc-attention-600);
+  border-radius: 0 var(--oc-radius-sm) var(--oc-radius-sm) 0;
+  background: var(--oc-attention-050);
+}

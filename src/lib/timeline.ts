@@ -75,3 +75,23 @@ export function buildTimeline(events: ChannelEvent[], notes: AgentNote[]): Timel
     return left.id < right.id ? -1 : left.id > right.id ? 1 : 0
   })
 }
+
+/**
+ * The attached note's text, or null when it adds nothing.
+ *
+ * A phone call with no internal note falls back to storing the outcome, so
+ * rendering the note text unconditionally would repeat the same sentence twice on
+ * one entry. Returning null in that case keeps the entry honest without needing a
+ * nullable column.
+ */
+export function distinctNoteText(item: TimelineItem): string | null {
+  if (item.kind !== 'event' || !item.note) return null
+
+  const text = item.note.note.trim()
+  if (text.length === 0) return null
+
+  const outcome = item.event.content['outcome']
+  if (typeof outcome === 'string' && outcome.trim() === text) return null
+
+  return text
+}

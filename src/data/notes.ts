@@ -62,6 +62,7 @@ export async function logPhoneInteraction(
       p_direction: input.direction,
       p_wanted: input.what_the_customer_wanted,
       p_outcome: input.outcome,
+      p_internal_note: input.internal_note,
       p_status: input.status,
       p_follow_up_required: input.follow_up_required,
       p_occurred_at: input.occurred_at,

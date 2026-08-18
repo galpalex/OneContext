@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildTimeline } from './timeline'
+import { buildTimeline, distinctNoteText } from './timeline'
 import type { AgentNote, ChannelEvent } from './types'
 
 function event(id: string, occurred_at: string, overrides: Partial<ChannelEvent> = {}): ChannelEvent {
@@ -130,5 +130,45 @@ describe('buildTimeline', () => {
 
     expect(items).toHaveLength(3)
     expect(attachedCount).toBe(1)
+  })
+})
+
+describe('distinctNoteText', () => {
+  const phoneEvent = event('e-phone', '2026-08-18T00:00:00Z', {
+    channel: 'phone',
+    content: { what_the_customer_wanted: 'A discount', outcome: 'Sending pricing Friday.' },
+  })
+
+  function itemFor(noteText: string) {
+    const [item] = buildTimeline(
+      [phoneEvent],
+      [note('n', '2026-08-18T00:00:00Z', { channel_event_id: 'e-phone', note: noteText })],
+    )
+    return item!
+  }
+
+  it('returns the note when it says something the outcome does not', () => {
+    expect(distinctNoteText(itemFor('Sounded ready to churn - loop in the AM.'))).toBe(
+      'Sounded ready to churn - loop in the AM.',
+    )
+  })
+
+  it('returns null when the note merely repeats the outcome', () => {
+    // This is the fallback the Postgres function stores for an empty internal note.
+    expect(distinctNoteText(itemFor('Sending pricing Friday.'))).toBeNull()
+  })
+
+  it('ignores surrounding whitespace when comparing', () => {
+    expect(distinctNoteText(itemFor('   Sending pricing Friday.  '))).toBeNull()
+  })
+
+  it('returns null for an event with no attached note', () => {
+    const [item] = buildTimeline([phoneEvent], [])
+    expect(distinctNoteText(item!)).toBeNull()
+  })
+
+  it('returns null for a standalone note entry', () => {
+    const [item] = buildTimeline([], [note('n-free', '2026-08-18T00:00:00Z')])
+    expect(distinctNoteText(item!)).toBeNull()
   })
 })

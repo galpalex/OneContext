@@ -128,6 +128,8 @@ export interface NewPhoneInteractionInput {
   direction: Direction
   what_the_customer_wanted: string
   outcome: string
+  /** Optional team-facing note. Falls back to the outcome when left empty. */
+  internal_note: string
   status: NoteStatus
   follow_up_required: boolean
   occurred_at: string

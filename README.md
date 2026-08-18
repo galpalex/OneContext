@@ -57,6 +57,11 @@ npm install
    the same way. It links an agent note to the interaction it came from and adds
    `log_phone_interaction()`, which writes a phone event and its note in one
    transaction. **The phone channel fails without it.**
+4. Run [`supabase/migrations/0003_phone_internal_note.sql`](supabase/migrations/0003_phone_internal_note.sql).
+   It replaces `log_phone_interaction()` with a version taking an optional internal
+   note, so the agent note carries content of its own rather than a copy of the
+   outcome. **The phone channel fails without it too, because the signature
+   changed.**
 
 ### 3. Enable Google sign-in
 

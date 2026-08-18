@@ -1,6 +1,7 @@
 import { useId, useState } from 'react'
 import type { AgentNote, ChannelEvent, NoteStatus } from '../../lib/types'
 import type { TimelineItem } from '../../lib/timeline'
+import { distinctNoteText } from '../../lib/timeline'
 import { PRIMARY_CONTENT_KEYS, channelMeta, eventTypeLabel } from '../../lib/channels'
 import { formatDateTime, humanizeKey } from '../../lib/format'
 import { Badge } from '../ui/Badge'
@@ -136,10 +137,13 @@ function EventContent({ event }: { event: ChannelEvent }) {
 function EventItem({
   event,
   note,
+  internalNote,
   connected,
 }: {
   event: ChannelEvent
   note: AgentNote | null
+  /** Attached note text, already filtered to what adds information. */
+  internalNote: string | null
   connected: boolean
 }) {
   const meta = channelMeta(event.channel)
@@ -184,6 +188,13 @@ function EventItem({
         {event.subject ? <p className="oc-timeline__subject">{event.subject}</p> : null}
 
         <EventContent event={event} />
+
+        {internalNote ? (
+          <div className="oc-internal-note">
+            <p className="oc-label">Internal note</p>
+            <p className="oc-timeline__message">{internalNote}</p>
+          </div>
+        ) : null}
       </div>
     </li>
   )
@@ -234,7 +245,13 @@ export function ActivityTimeline({ items }: { items: TimelineItem[] }) {
         const connected = index < items.length - 1
 
         return item.kind === 'event' ? (
-          <EventItem key={item.id} event={item.event} note={item.note} connected={connected} />
+          <EventItem
+            key={item.id}
+            event={item.event}
+            note={item.note}
+            internalNote={distinctNoteText(item)}
+            connected={connected}
+          />
         ) : (
           <NoteItem key={item.id} note={item.note} connected={connected} />
         )

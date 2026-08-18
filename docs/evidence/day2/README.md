@@ -15,6 +15,12 @@ anonymously is rejected with `42501 new row violates row-level security policy`.
 The function is `SECURITY INVOKER`, so RLS governs both of its inserts; a
 `SECURITY DEFINER` function would have bypassed RLS and allowed that call.
 
+## Form validation
+
+| File | What it proves |
+| --- | --- |
+| `validation time.png` | Submitting an empty Web form reports all three problems at once - invalid date and time, missing subject, missing message - each with a red border and an inline message tied to its field. The Phone tab is enabled here, so this was taken after slice 3 |
+
 ## Slice 2 — WhatsApp and Email
 
 | File | What it proves |

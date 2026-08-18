@@ -76,6 +76,8 @@ interface Draft {
   occurredAt: string
   /** Phone only: what the customer wanted, per FEATURESPEC's call summary. */
   wanted: string
+  /** Phone only: team-facing note, distinct from the customer-facing outcome. */
+  internalNote: string
   status: NoteStatus
   followUpRequired: boolean
 }
@@ -92,6 +94,7 @@ function emptyDraft(): Draft {
     body: '',
     occurredAt: nowLocalInput(),
     wanted: '',
+    internalNote: '',
     status: 'pending',
     followUpRequired: false,
   }
@@ -190,6 +193,7 @@ export function AddEventDialog({
             direction: draft.direction,
             what_the_customer_wanted: draft.wanted.trim(),
             outcome: draft.body.trim(),
+            internal_note: draft.internalNote.trim(),
             status: draft.status,
             follow_up_required: draft.followUpRequired,
             occurred_at: occurredAt,
@@ -246,7 +250,8 @@ export function AddEventDialog({
           const hasDraft =
             other.subject.trim().length > 0 ||
             other.body.trim().length > 0 ||
-            other.wanted.trim().length > 0
+            other.wanted.trim().length > 0 ||
+            other.internalNote.trim().length > 0
 
           return (
             <button
@@ -420,6 +425,25 @@ export function AddEventDialog({
               disabled={submitting}
             />
           </Field>
+
+          {isPhone ? (
+            <Field
+              id="event-internal-note"
+              label="Internal note"
+              hint="Optional. What the team needs to know, as opposed to the outcome you would tell the customer. Left empty, the note falls back to the outcome."
+              className="oc-form-grid__full"
+            >
+              <textarea
+                id="event-internal-note"
+                className="oc-textarea"
+                value={draft.internalNote}
+                onChange={(changed) => update('internalNote', changed.target.value)}
+                aria-describedby="event-internal-note-hint"
+                rows={2}
+                disabled={submitting}
+              />
+            </Field>
+          ) : null}
 
           {isPhone ? (
             <div className="oc-form-grid__full">
