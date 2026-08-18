@@ -72,3 +72,10 @@ export function parseTags(raw: string): string[] {
 export function isValidEmail(value: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(value.trim())
 }
+
+/** Turns a stored jsonb key such as `what_customer_wanted` into a readable label. */
+export function humanizeKey(key: string): string {
+  const spaced = key.replace(/[_-]+/g, ' ').trim()
+  if (spaced.length === 0) return key
+  return spaced.charAt(0).toUpperCase() + spaced.slice(1)
+}

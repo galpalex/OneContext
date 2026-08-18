@@ -47,3 +47,20 @@ export function eventTypeLabel(type: string | null): string | null {
   const spaced = type.replace(/_/g, ' ')
   return spaced.charAt(0).toUpperCase() + spaced.slice(1)
 }
+
+/**
+ * jsonb key holding the main body text for each channel.
+ * Email carries a `body`, the conversational channels carry a `message`; the
+ * timeline reads whichever is present rather than forcing one name on all.
+ */
+export function contentKey(channel: Channel): 'message' | 'body' {
+  return channel === 'email' ? 'body' : 'message'
+}
+
+/** Content keys the timeline may treat as the primary text, in priority order. */
+export const PRIMARY_CONTENT_KEYS = ['message', 'body'] as const
+
+export const DIRECTIONS = [
+  { value: 'inbound', label: 'Inbound - from the customer' },
+  { value: 'outbound', label: 'Outbound - from your team' },
+] as const

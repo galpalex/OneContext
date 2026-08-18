@@ -1,18 +1,38 @@
 import { useId, useState } from 'react'
 import type { ChannelEvent } from '../../lib/types'
-import { channelMeta, eventTypeLabel } from '../../lib/channels'
-import { formatDateTime } from '../../lib/format'
+import { PRIMARY_CONTENT_KEYS, channelMeta, eventTypeLabel } from '../../lib/channels'
+import { formatDateTime, humanizeKey } from '../../lib/format'
 import { Badge } from '../ui/Badge'
 import { Icon } from '../ui/Icon'
 
 /** Messages longer than this are collapsed until the user asks for the rest. */
 const COLLAPSE_AT = 240
 
-function scalarExtras(content: Record<string, unknown>): Array<[string, string]> {
+/**
+ * The main body text and the key it came from. Channels name it differently -
+ * email stores a `body`, conversational channels a `message` - so the timeline
+ * resolves whichever is present instead of assuming one name.
+ */
+function primaryText(content: Record<string, unknown>): { key: string | null; text: string } {
+  for (const key of PRIMARY_CONTENT_KEYS) {
+    const value = content[key]
+    if (typeof value === 'string' && value.trim().length > 0) {
+      return { key, text: value.trim() }
+    }
+  }
+
+  return { key: null, text: '' }
+}
+
+/** Remaining scalar content, shown as labelled fields below the body. */
+function scalarExtras(
+  content: Record<string, unknown>,
+  skipKey: string | null,
+): Array<[string, string]> {
   const rows: Array<[string, string]> = []
 
   for (const [key, value] of Object.entries(content)) {
-    if (key === 'message') continue
+    if (key === skipKey) continue
     if (typeof value === 'string' && value.trim().length > 0) rows.push([key, value])
     else if (typeof value === 'number') rows.push([key, String(value)])
   }
@@ -24,9 +44,9 @@ function EventContent({ event }: { event: ChannelEvent }) {
   const [expanded, setExpanded] = useState(false)
   const bodyId = useId()
 
-  const raw = event.content['message']
-  const message = typeof raw === 'string' ? raw.trim() : ''
-  const extras = scalarExtras(event.content)
+  const primary = primaryText(event.content)
+  const message = primary.text
+  const extras = scalarExtras(event.content, primary.key)
 
   if (message.length === 0 && extras.length === 0) {
     return <p className="oc-na">No content recorded for this event</p>
@@ -60,7 +80,7 @@ function EventContent({ event }: { event: ChannelEvent }) {
         <dl className="oc-timeline__extras">
           {extras.map(([key, value]) => (
             <div className="oc-dl__row" key={key}>
-              <dt className="oc-dl__term">{eventTypeLabel(key)}</dt>
+              <dt className="oc-dl__term">{humanizeKey(key)}</dt>
               <dd className="oc-dl__value">{value}</dd>
             </div>
           ))}
