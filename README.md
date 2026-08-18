@@ -11,7 +11,7 @@ Auth, RLS) · Vercel · Google Gemini through a Vercel serverless function.
 
 ---
 
-## Current status: Day 1 slice
+## Current status: Day 2 complete except follow-ups
 
 Implemented:
 
@@ -31,8 +31,10 @@ Implemented:
 Not implemented yet (later iterations): follow-up creation, the Next steps area,
 and the `/api/insight` serverless function that calls Gemini.
 
-Metrics that would require channel events or follow-ups display
-**Not available** rather than a zero, so no number on screen is invented.
+A measured zero and an absent measurement are shown differently: `Total
+interactions 0` is a fact once `channel_events` has been read, while
+`Days since last contact` and `Open follow-ups` display **Not available** until
+there is something to measure. No number on screen is invented.
 
 ---
 
@@ -131,13 +133,16 @@ src/
     shell/      top bar, side navigation, app shell, brand mark
     states/     loading / empty / error components
     ui/         button, card, badge, field, modal, icon
-  data/         Supabase queries
-  lib/          client, types, lifecycle model, formatters
+  data/         Supabase queries (customers, events, notes)
+  lib/          client, types, channels, lifecycle, metrics, timeline, formatters
   pages/        login, customers, customer workspace, not found
   styles/       tokens, global, layout, components
 supabase/
-  migrations/   0001_init.sql
+  migrations/   0001_init.sql, 0002_phone_interactions.sql
 ```
+
+Unit tests live beside the code they cover: `src/lib/timeline.test.ts` and
+`src/lib/metrics.test.ts`.
 
 Project artifacts: [GOAL.md](GOAL.md) · [FEATURESPEC.md](FEATURESPEC.md) ·
 [DESIGN-GUIDELINES.md](DESIGN-GUIDELINES.md) · [PLAN.md](PLAN.md).
