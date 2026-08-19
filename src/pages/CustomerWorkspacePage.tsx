@@ -59,6 +59,9 @@ export function CustomerWorkspacePage() {
     source: 'manual',
   })
   const [statusPendingId, setStatusPendingId] = useState<string | null>(null)
+  const [insightRequest, setInsightRequest] = useState<{ id: number; focus: 'summary' } | null>(
+    null,
+  )
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
 
   const loadCustomer = useCallback(async () => {
@@ -217,7 +220,18 @@ export function CustomerWorkspacePage() {
   return (
     <div className="oc-workspace">
       <div className="oc-workspace__full">
-        <CustomerHeader customer={customer} onAddEvent={() => setDialogOpen(true)} />
+        <CustomerHeader
+          customer={customer}
+          onAddEvent={() => setDialogOpen(true)}
+          onGenerateInsight={() => {
+            setInsightRequest((current) => ({ id: (current?.id ?? 0) + 1, focus: 'summary' }))
+            // The rail sits below the content on narrow screens, so bring it into view.
+            document.getElementById('onecontext-ai')?.scrollIntoView({
+              behavior: 'smooth',
+              block: 'start',
+            })
+          }}
+        />
       </div>
 
       {successMessage ? (
@@ -343,10 +357,11 @@ export function CustomerWorkspacePage() {
         </Card>
       </div>
 
-      <div className="oc-workspace__ai">
+      <div className="oc-workspace__ai" id="onecontext-ai">
         <AiPanel
           customerId={customer.id}
           events={events}
+          request={insightRequest}
           onCreateFollowUp={(title) => {
             // The recommendation only pre-fills a form; the user still confirms.
             setFollowUpDraft({ title, source: 'ai_recommendation' })

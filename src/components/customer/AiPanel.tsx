@@ -16,6 +16,11 @@ interface AiPanelProps {
   customerId: string
   /** Events already loaded for the timeline, used to resolve source references. */
   events: ChannelEvent[]
+  /**
+   * Lets the workspace header start a generation. The id changes on each press, so
+   * pressing the same button twice re-runs rather than being ignored as unchanged.
+   */
+  request: { id: number; focus: InsightFocus } | null
   onCreateFollowUp: (title: string) => void
 }
 
@@ -41,7 +46,7 @@ type Status = 'idle' | 'restoring' | 'generating' | 'ready' | 'error'
  * the markup rather than assumed: the answer is labelled as a suggestion to review,
  * and the recommendation cannot become a task without the user pressing a button.
  */
-export function AiPanel({ customerId, events, onCreateFollowUp }: AiPanelProps) {
+export function AiPanel({ customerId, events, request, onCreateFollowUp }: AiPanelProps) {
   const [status, setStatus] = useState<Status>('idle')
   const [insight, setInsight] = useState<Insight | null>(null)
   const [generatedAt, setGeneratedAt] = useState<string | null>(null)
@@ -113,6 +118,13 @@ export function AiPanel({ customerId, events, onCreateFollowUp }: AiPanelProps) 
     },
     [customerId],
   )
+
+  // Respond to the header's Generate insight button.
+  const requestId = request?.id ?? 0
+  const requestFocus = request?.focus ?? 'summary'
+  useEffect(() => {
+    if (requestId > 0) void run(requestFocus)
+  }, [requestId, requestFocus, run])
 
   const generating = status === 'generating'
   const sources = insight

@@ -10,14 +10,19 @@ import { Icon } from '../ui/Icon'
 interface CustomerHeaderProps {
   customer: Customer
   onAddEvent: () => void
+  onGenerateInsight: () => void
 }
 
 /**
- * Workspace header. Add event is live; insight generation stays disabled until
- * the serverless function exists, since a button that looks live but does nothing
- * would be worse than a disabled one.
+ * Workspace header. Both actions are live: Add event opens the channel dialog, and
+ * Generate insight starts a summary in the OneContext AI rail and scrolls to it,
+ * which matters on narrow screens where the rail sits below the content.
  */
-export function CustomerHeader({ customer, onAddEvent }: CustomerHeaderProps) {
+export function CustomerHeader({
+  customer,
+  onAddEvent,
+  onGenerateInsight,
+}: CustomerHeaderProps) {
   const created = formatDate(customer.created_at)
 
   return (
@@ -37,7 +42,11 @@ export function CustomerHeader({ customer, onAddEvent }: CustomerHeaderProps) {
           </div>
 
           <div className="oc-customer-header__actions">
-            <Button variant="secondary" disabled title="Available in a later iteration">
+            <Button
+              variant="secondary"
+              onClick={onGenerateInsight}
+              iconLeft={<Icon name="sparkle" size={15} />}
+            >
               Generate insight
             </Button>
             <Button variant="primary" onClick={onAddEvent} iconLeft={<Icon name="plus" />}>
