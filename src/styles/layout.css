@@ -13,6 +13,10 @@
     'topbar topbar'
     'nav    main';
   background: var(--oc-bg);
+  /* Belt and braces: no future child may widen the document and reintroduce
+     the sideways scroll. clip, not hidden, so the sticky top bar and the
+     profile menu still behave. */
+  overflow-x: clip;
 }
 
 .oc-shell__topbar {
