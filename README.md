@@ -13,6 +13,27 @@ account. A new account starts empty; the seeded walkthrough data belongs to the
 owner's account, because Row Level Security scopes every row to the user who created
 it.
 
+## Screenshots
+
+![Customer workspace with a OneContext AI insight](docs/evidence/day3/ai%20suggestion.png)
+
+The three-zone workspace. OneContext AI has read this customer's stored history and returned a summary, topics, two risks and one recommended action, citing the six events it relied on. Every figure in the KPI cards is derived from stored rows.
+
+![Activity timeline with phone calls and an internal note](docs/evidence/day2/internal%20phone%20note.png)
+
+The merged timeline. A phone call shows what the customer wanted and the outcome as separate fields, with its linked agent note contributing the status and follow-up flag. The internal note appears only when it says something the outcome does not.
+
+![A follow-up created from an AI recommendation](docs/evidence/day3/ai%20follow%20up%20noa.png)
+
+The recommendation became a task, badged *From OneContext AI*. That badge renders only for `source = ai_recommendation`, which the confirmation form alone writes, so it is proof a human accepted it.
+
+![Engagement counts across channels](docs/evidence/day2/email%20logged%2C%20three%20channels.png)
+
+Engagement per channel and a 14-day activity trend, both computed from stored events. `Open follow-ups` reads *Not available* here because nothing had queried `follow_ups` yet - distinct from a measured zero.
+
+More in [`docs/evidence/`](docs/evidence/), organised by day, each with a note on
+what it proves.
+
 ## Problem
 
 A single customer's history is scattered across an email thread, a WhatsApp chat, a
