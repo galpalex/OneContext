@@ -1242,25 +1242,6 @@
   color: var(--oc-primary-800);
 }
 
-.oc-ai__prompts {
-  display: flex;
-  flex-direction: column;
-  gap: var(--oc-space-2);
-}
-
-.oc-ai__prompt {
-  display: block;
-  width: 100%;
-  padding: var(--oc-space-2) var(--oc-space-3);
-  border: 1px solid var(--oc-border);
-  border-radius: var(--oc-radius-md);
-  background: var(--oc-surface);
-  font-size: var(--oc-text-sm);
-  text-align: left;
-  color: var(--oc-neutral-600);
-  cursor: not-allowed;
-}
-
 .oc-ai__disclaimer {
   display: flex;
   gap: var(--oc-space-2);
@@ -1681,26 +1662,6 @@
 }
 
 /* --- OneContext AI result ------------------------------------------------ */
-
-.oc-ai__prompt.is-active {
-  display: flex;
-  align-items: center;
-  gap: var(--oc-space-2);
-  color: var(--oc-primary-800);
-  border-color: var(--oc-primary-200);
-  background: var(--oc-surface);
-  cursor: pointer;
-}
-
-.oc-ai__prompt.is-active:hover:not(:disabled) {
-  background: var(--oc-primary-050);
-  border-color: var(--oc-primary-500);
-}
-
-.oc-ai__prompt.is-active:disabled {
-  color: var(--oc-text-faint);
-  cursor: not-allowed;
-}
 
 .oc-insight {
   display: flex;

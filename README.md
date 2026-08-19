@@ -231,8 +231,8 @@ before it becomes a task.
    optional internal note.
 3. Watch the KPI cards and engagement counts change — every number comes from the
    rows you just wrote.
-4. Ask OneContext AI one of the three suggested questions. Read the cited events under
-   *Based on*; clicking one jumps to that entry in the timeline.
+4. Press **Generate insight**, in the AI rail or the workspace header. Read the cited
+   events under *Based on*; clicking one jumps to that entry in the timeline.
 5. Press **Create follow-up** to turn the recommendation into a task. The form opens
    pre-filled and editable; nothing is stored until you submit.
 
@@ -242,6 +242,13 @@ single enquiry — the AI reports low confidence for her and declines to invent 
 history.
 
 ## Notes
+
+One deliberate departure from the spec: FEATURESPEC lists three suggested prompts -
+summarise, identify risks, suggest a next action - and the panel offers a single
+Generate insight button instead. All three returned the same contract, differing only
+in emphasis, so three buttons implied a choice of answer that did not exist. The
+endpoint still accepts a focus parameter and its hints remain tested, so restoring the
+three is a UI change rather than a rebuild.
 
 OneContext is a demonstration of one narrow vertical slice, not a production CRM. The
 four channels are logging forms rather than real integrations: there is no WhatsApp

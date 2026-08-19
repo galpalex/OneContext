@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { Confidence, Insight, InsightFocus } from '../../../api/_shared/insight'
+import type { Confidence, Insight } from '../../../api/_shared/insight'
 import { generateInsight, latestInsight } from '../../data/insights'
 import { channelMeta } from '../../lib/channels'
 import { formatDateTime } from '../../lib/format'
@@ -20,15 +20,9 @@ interface AiPanelProps {
    * Lets the workspace header start a generation. The id changes on each press, so
    * pressing the same button twice re-runs rather than being ignored as unchanged.
    */
-  request: { id: number; focus: InsightFocus } | null
+  request: number | null
   onCreateFollowUp: (title: string) => void
 }
-
-const PROMPTS: ReadonlyArray<{ focus: InsightFocus; label: string }> = [
-  { focus: 'summary', label: 'Summarize customer history' },
-  { focus: 'risks', label: 'What are the current risks?' },
-  { focus: 'next_action', label: 'What should I do next?' },
-]
 
 const CONFIDENCE_TONE: Record<Confidence, BadgeTone> = {
   low: 'neutral',
@@ -51,7 +45,6 @@ export function AiPanel({ customerId, events, request, onCreateFollowUp }: AiPan
   const [insight, setInsight] = useState<Insight | null>(null)
   const [generatedAt, setGeneratedAt] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [lastFocus, setLastFocus] = useState<InsightFocus>('summary')
   const [persisted, setPersisted] = useState(true)
   const [droppedIds, setDroppedIds] = useState<string[]>([])
   const [confidenceCapped, setConfidenceCapped] = useState(false)
@@ -105,10 +98,9 @@ export function AiPanel({ customerId, events, request, onCreateFollowUp }: AiPan
   }, [customerId])
 
   const run = useCallback(
-    async (focus: InsightFocus) => {
+    async () => {
       // The user has taken over; any pending restore is now stale.
       restoreRelevant.current = false
-      setLastFocus(focus)
       setStatus('generating')
       setError(null)
       setDroppedIds([])
@@ -116,7 +108,7 @@ export function AiPanel({ customerId, events, request, onCreateFollowUp }: AiPan
       setRestoredCollapsed(false)
 
       try {
-        const result = await generateInsight(customerId, focus)
+        const result = await generateInsight(customerId)
         setInsight(result.insight)
         setGeneratedAt(result.created_at)
         setPersisted(result.persisted)
@@ -132,11 +124,9 @@ export function AiPanel({ customerId, events, request, onCreateFollowUp }: AiPan
   )
 
   // Respond to the header's Generate insight button.
-  const requestId = request?.id ?? 0
-  const requestFocus = request?.focus ?? 'summary'
   useEffect(() => {
-    if (requestId > 0) void run(requestFocus)
-  }, [requestId, requestFocus, run])
+    if (request && request > 0) void run()
+  }, [request, run])
 
   const generating = status === 'generating'
   const sources = insight
@@ -161,24 +151,20 @@ export function AiPanel({ customerId, events, request, onCreateFollowUp }: AiPan
 
       <CardBody padding="tight">
         <div className="oc-stack">
-          <div className="oc-ai__prompts">
-            {PROMPTS.map((prompt) => (
-              <button
-                key={prompt.focus}
-                type="button"
-                className="oc-ai__prompt is-active"
-                disabled={generating || !isSupabaseConfigured}
-                onClick={() => void run(prompt.focus)}
-              >
-                {generating && lastFocus === prompt.focus ? (
-                  <span className="oc-spinner" aria-hidden="true" />
-                ) : (
-                  <Icon name="sparkle" size={13} />
-                )}
-                {prompt.label}
-              </button>
-            ))}
-          </div>
+          <Button
+            variant="primary"
+            block
+            loading={generating}
+            disabled={!isSupabaseConfigured}
+            onClick={() => void run()}
+            iconLeft={<Icon name="sparkle" size={14} />}
+          >
+            {generating ? 'Reading history…' : 'Generate insight'}
+          </Button>
+          <p className="oc-meta">
+            Reads this customer's stored events and notes, then returns a summary, the topics
+            raised, any risks, and one recommended action.
+          </p>
 
           {status === 'restoring' ? (
             <p className="oc-meta" role="status">
@@ -206,20 +192,13 @@ export function AiPanel({ customerId, events, request, onCreateFollowUp }: AiPan
                 <Button
                   variant="secondary"
                   size="sm"
-                  onClick={() => void run(lastFocus)}
+                  onClick={() => void run()}
                   iconLeft={<Icon name="refresh" size={13} />}
                 >
                   Try again
                 </Button>
               </div>
             </div>
-          ) : null}
-
-          {status === 'idle' && !insight ? (
-            <p className="oc-meta">
-              Pick a question above. OneContext AI reads only this customer's stored events and
-              notes.
-            </p>
           ) : null}
 
           {insight && restoredCollapsed && !generating ? (

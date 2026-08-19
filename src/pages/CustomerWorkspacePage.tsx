@@ -59,9 +59,7 @@ export function CustomerWorkspacePage() {
     source: 'manual',
   })
   const [statusPendingId, setStatusPendingId] = useState<string | null>(null)
-  const [insightRequest, setInsightRequest] = useState<{ id: number; focus: 'summary' } | null>(
-    null,
-  )
+  const [insightRequest, setInsightRequest] = useState<number | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
 
   const loadCustomer = useCallback(async () => {
@@ -224,7 +222,7 @@ export function CustomerWorkspacePage() {
           customer={customer}
           onAddEvent={() => setDialogOpen(true)}
           onGenerateInsight={() => {
-            setInsightRequest((current) => ({ id: (current?.id ?? 0) + 1, focus: 'summary' }))
+            setInsightRequest((current) => (current ?? 0) + 1)
             // The rail sits below the content on narrow screens, so bring it into view.
             document.getElementById('onecontext-ai')?.scrollIntoView({
               behavior: 'smooth',

@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabase'
-import type { Confidence, Insight, InsightFocus } from '../../api/_shared/insight'
+import type { Confidence, Insight } from '../../api/_shared/insight'
 
 export interface GeneratedInsight {
   insight: Insight
@@ -45,10 +45,7 @@ function toConfidence(value: string | null): Confidence {
  * the only thing this request asserts, and RLS decides whether the caller may see
  * it. Nothing about ownership is sent.
  */
-export async function generateInsight(
-  customerId: string,
-  focus: InsightFocus,
-): Promise<GeneratedInsight> {
+export async function generateInsight(customerId: string): Promise<GeneratedInsight> {
   const { data, error } = await supabase.auth.getSession()
   if (error || !data.session) {
     throw new Error('Your session has expired. Sign in again to generate an insight.')
@@ -68,9 +65,12 @@ export async function generateInsight(
        * beside it shows local ones, and any event just after local midnight
        * appears to be a day out.
        */
+      /*
+       * No `focus` is sent. The endpoint still accepts one and the three hints remain
+       * tested, but the panel offers a single action, so the server default applies.
+       */
       body: JSON.stringify({
         customerId,
-        focus,
         timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       }),
     })
