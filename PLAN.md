@@ -148,7 +148,7 @@ See [`docs/evidence/day3/`](docs/evidence/day3/).
 - [x] Screenshot: Confirmed follow-up created from AI recommendation — `follow up ai noa.png` (the form) and `ai follow up noa.png` (the stored task, badged From OneContext AI).
 - [x] Public Vercel URL — https://one-context.vercel.app.
 - [x] Short README walkthrough — [README.md](README.md): problem, stack, how it works, screenshots, setup, security.
-- [ ] Final commit/PR reference.
+- [x] Final commit/PR reference — tag [`v1.0-demo`](https://github.com/galpalex/OneContext/releases/tag/v1.0-demo) on [github.com/galpalex/OneContext](https://github.com/galpalex/OneContext). The tag pins the state every Day 1-3 evidence artefact describes, so later work on `main` cannot invalidate the record.
 
 ## Demo walkthrough
 
