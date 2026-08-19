@@ -1,306 +1,215 @@
-# OneContext
+# OneContext: AI-Powered Omnichannel CRM
 
-**Every customer interaction, one clear next step.**
+OneContext unifies customer interactions from four channels into one chronological
+history, derives metrics from that history, and uses Google Gemini to propose the
+next action a human confirms. Built as a three-day full-stack vertical slice: Google
+sign-in, per-user data isolation enforced by Postgres, four working channels, a
+merged timeline, and an AI recommendation that cannot write to the CRM on its own.
 
-An AI-powered omnichannel CRM workspace for small customer-facing teams. Web
-requests, WhatsApp messages, emails and phone notes become one customer history —
-and OneContext AI reads that history to propose a next action a human confirms.
+## Live Demo
 
-**Live:** [one-context.vercel.app](https://one-context.vercel.app)
+[one-context.vercel.app](https://one-context.vercel.app) — sign in with any Google
+account. A new account starts empty; the seeded walkthrough data belongs to the
+owner's account, because Row Level Security scopes every row to the user who created
+it.
 
----
+## Problem
 
-## The problem
+A single customer's history is scattered across an email thread, a WhatsApp chat, a
+web form, a phone call nobody wrote down, and a colleague's private notes. The team
+pays for that: time lost reconstructing context before every conversation, customers
+asked to repeat themselves, follow-ups dropped because nothing owns them, and
+decisions made on partial information because assembling the full picture costs more
+than the decision appears to be worth.
 
-Customer context is scattered. A single account's history lives across an email
-thread, a WhatsApp chat, a web form submission, a call someone half-remembers, a
-spreadsheet, and a colleague's private notes.
+## Solution
 
-The cost lands on the customer-facing team:
+OneContext solves that by making every interaction a stored record on one timeline,
+then computing what can be computed and asking a model only for what genuinely needs
+interpretation. Web forms, WhatsApp messages, emails and phone notes write real rows;
+metrics are derived from those rows rather than estimated; and OneContext AI reads the
+stored history to produce a summary, risks and one recommended action, with the events
+it relied on cited. The recommendation becomes a task only when a human confirms it.
 
-- **Time lost reconstructing history** before every conversation.
-- **Customers asked to repeat themselves**, which reads as incompetence.
-- **Follow-ups dropped**, because nothing owns them.
-- **What the customer actually cares about** is buried in a call nobody wrote down.
-- **Decisions made on partial information**, because assembling the full picture
-  costs more than the decision seems to be worth.
-
-CRM systems answer this with a centralised customer profile, interaction history and
-automation. OneContext demonstrates that principle in one narrow, complete vertical
-slice — and pushes one step further: it does not stop at *showing* you the history,
-it proposes what to do about it.
-
-## What OneContext does
-
-Four channels converge into a single chronological history, which is then turned
-into a decision:
+## Architecture & Workflow
 
 ```
-Web form ─┐
-WhatsApp ─┤
-Email ────┼──▶  one timeline  ──▶  deterministic metrics  ──▶  OneContext AI  ──▶  you confirm  ──▶  follow-up task
-Phone ────┘                                                   (reads only
-                                                              stored records)
+[Google sign-in via Supabase Auth]
+              |
+              v
+[Customer workspace] --- Web form ----+
+                     --- WhatsApp ----+
+                     --- Email -------+--> [channel_events] --+
+                     --- Phone -------+                       |
+                              |                               +--> [merged timeline]
+                              +--> [agent_notes] -------------+           |
+                                                                          v
+                                                          [deterministic metrics]
+                                                                          |
+                                                                          v
+                              [/api/insight  -->  Gemini 3.1 Flash Lite]  |
+                                        |  validated, cited, capped       |
+                                        v                                 |
+                              [OneContext AI panel] <---------------------+
+                                        |
+                                        v
+                              [human confirms] --> [follow_ups]
 ```
 
-The last arrow matters most. The AI never writes to the CRM. It proposes; a human
-confirms; only then does a task exist.
+The browser never holds the Gemini key and never asserts who it is. The serverless
+function verifies the caller's Supabase token, reads customer data under that token
+so Row Level Security decides what the prompt may contain, validates the model
+response before storing anything, and returns a recommendation the user must confirm
+before it becomes a task.
 
-## Stack
+## Core Concepts
 
-| Layer | Choice | Why |
-| --- | --- | --- |
-| Frontend | React 19 + Vite 8 + TypeScript 7 | Fast builds, strict types, no framework lock-in |
-| Routing | react-router-dom 7 | Route-level code splitting |
-| Data & auth | Supabase — Postgres, Auth, Row Level Security | Isolation enforced by the database, not by application code |
-| Hosting | Vercel — static SPA + serverless function | One deploy for both halves |
-| AI | Google Gemini `gemini-3.1-flash-lite` | Fast, cheap, supports a forced response schema |
-| Tests | Vitest — 82 tests, run before every build | Deterministic logic is tested, not eyeballed |
+### 1. Row Level Security as the isolation mechanism
 
-Deliberately **not** used: Next.js, an ORM, a state-management library, a UI kit.
-The app is hand-written TypeScript and CSS with design tokens.
+- **Files**: `supabase/migrations/0001_init.sql`, `src/data/customers.ts`
+- **Demonstration**: every user-owned table has `user_id uuid not null default
+  auth.uid()` with policies scoped `to authenticated` comparing `auth.uid() =
+  user_id`. The browser therefore never sends an ownership value, and queries carry
+  no `user_id` filter — `listCustomers()` selects every customer and receives only
+  yours. Forgetting a filter cannot leak data because filtering was never the
+  mechanism.
 
----
+### 2. Omnichannel timeline
 
-## How it works
+- **Files**: `src/lib/timeline.ts`, `src/components/customer/ActivityTimeline.tsx`,
+  `supabase/migrations/0002_phone_interactions.sql`
+- **Demonstration**: each channel writes a real `channel_events` row with the fields
+  that channel actually has. A phone call writes two rows — the event plus a linked
+  `agent_notes` row carrying status and a follow-up flag — inside one `SECURITY
+  INVOKER` Postgres function, so they share a transaction and RLS still governs both
+  inserts. `buildTimeline()` merges both tables newest-first with ties broken by id,
+  so ordering never depends on the order Postgres returned rows.
 
-### 1. Isolation is the database's job, not the application's
+### 3. Deterministic metrics
 
-Every user-owned table has `user_id uuid not null default auth.uid()`, RLS enabled,
-and policies scoped `to authenticated` comparing `auth.uid() = user_id`.
+- **Files**: `src/lib/metrics.ts`, `src/components/customer/KpiCards.tsx`
+- **Demonstration**: a measured zero and an absent measurement are shown differently.
+  `Total interactions: 0` is a fact once `channel_events` has been read; `Days since
+  last contact` reads *Not available* until an event exists. While a query is in
+  flight every history-derived card reports *Not available* rather than flashing a
+  zero that looks measured.
 
-Two consequences:
+### 4. The AI contract
 
-- **The browser never sends an ownership value.** Postgres fills `user_id` from the
-  verified JWT and the RLS `WITH CHECK` clause re-verifies it. There is no code path
-  where a client could claim to be someone else, because the claim is never read.
-- **Queries carry no `user_id` filter.** `listCustomers()` selects every customer and
-  receives only yours. Forgetting a filter cannot leak data, because filtering was
-  never the mechanism.
+- **Files**: `api/insight.ts`, `api/_shared/insight.ts`
+- **Demonstration**: the model is given a forced response schema and its output is
+  validated anyway, because a schema cannot guarantee non-empty text and cannot know
+  which event ids exist. Cited ids are filtered to those actually supplied and
+  invented ones are reported. Nothing is stored unless validation passes, so a
+  malformed response leaves CRM data untouched. Confidence is capped by evidence: a
+  single interaction can only ever be `low`, computed from event and channel counts
+  rather than requested in the prompt where it could be reasoned away.
 
-Child tables go further: their policies verify the referenced customer belongs to the
-caller, so a row cannot be attached to another account's customer.
+### 5. Security
 
-### 2. Four channels, one merged timeline
+- **Files**: `api/insight.ts`, `vercel.json`, `supabase/migrations/`
+- **Demonstration**: `GEMINI_API_KEY` is read from the server environment and sent as
+  a header rather than a URL parameter, and is absent from the deployed bundle.
+  Anonymous reads return `200 []` on all five tables and anonymous writes are refused
+  with `42501`. A cross-account customer id returns `404`, indistinguishable from
+  missing. Two abuse controls sit in front of the model: 20 insights per user per hour
+  in the function, and a Vercel firewall rule capping `/api/*` at 30 requests per
+  minute per IP.
 
-Each channel writes a real `channel_events` row. The shapes differ, following the
-spec rather than forcing symmetry: web carries a request `type`, WhatsApp and email
-carry a `direction`, email stores a `body` where the conversational channels store a
-`message`.
+### 6. Human confirmation
 
-Phone is the interesting one. One submission writes **two** rows — a `channel_events`
-row and a linked `agent_notes` row carrying status and a follow-up flag — inside a
-single `SECURITY INVOKER` Postgres function, so they share a transaction and RLS
-still governs both inserts. A failure cannot leave an orphan event.
+- **Files**: `src/components/customer/AiPanel.tsx`,
+  `src/components/customer/CreateFollowUpForm.tsx`
+- **Demonstration**: `follow_ups.source` records `manual` or `ai_recommendation`, and
+  the latter is only ever written by the confirmation form. The AI pre-fills a title;
+  the user edits and submits. A task badged *From OneContext AI* is therefore proof a
+  human accepted it.
 
-`buildTimeline()` merges both tables newest-first, sorting events by `occurred_at` and
-standalone notes by `created_at`, with ties broken by id so ordering never depends on
-the order Postgres returned rows. A note linked to an event attaches to it rather
-than appearing twice.
+## Project Structure
 
-### 3. Metrics are derived, never invented
+- `api/insight.ts` — serverless function: auth verification, prompt, validation, persistence
+- `api/_shared/insight.ts` — the AI contract, its validator and the confidence ceiling
+- `src/data/` — one module per table, all relying on RLS rather than manual filtering
+- `src/lib/` — channels, lifecycle, metrics, timeline merge, formatters
+- `src/components/customer/` — workspace header, lifecycle bar, timeline, KPIs, AI panel
+- `src/pages/` — login, customers list, customer workspace, not found
+- `supabase/migrations/` — schema, RLS policies and functions, in run order
+- `supabase/seed/demo_data.sql` — five demo customers, safe to re-run
+- `docs/evidence/` — screenshots per day, with what each one proves
 
-A measured zero and an absent measurement are different facts, and the UI shows them
-differently:
+## Setup & Running Locally
 
-- `Total interactions: 0` — a fact, once `channel_events` has been read.
-- `Days since last contact: Not available` — meaningless until an event exists.
+1. **Install dependencies**:
 
-Nothing is displayed that cannot be computed from stored rows. While a query is still
-in flight, every history-derived card reports *Not available* rather than flashing a
-zero that looks measured.
+   ```bash
+   npm install
+   ```
 
-### 4. The AI is bounded on every side
+2. **Create the Supabase project and schema**. Run the four migrations in
+   `supabase/migrations/` in numeric order in the Supabase SQL Editor. Optionally run
+   `supabase/seed/demo_data.sql` for five customers with history across all four
+   channels — it is safe to re-run and only ever deletes rows it created itself.
 
-Insight generation runs in a serverless function ([api/insight.ts](api/insight.ts)),
-never the browser:
+3. **Enable Google sign-in**. Create an OAuth 2.0 Client ID in Google Cloud Console,
+   set its redirect URI to the callback URL shown in the Supabase Google provider
+   panel, then paste the client ID and secret there. Under URL Configuration add
+   `http://localhost:5173/customers` to the redirect list — sign-in fails silently
+   without it, because the client requests that path explicitly.
 
-- **The key stays server-side.** `GEMINI_API_KEY` is read from the server environment
-  and sent as an `x-goog-api-key` header — never a URL parameter, which would leak
-  into proxy logs.
-- **The caller is verified before any read.** The access token is checked with
-  Supabase, then every query runs under that token, so RLS decides what the prompt
-  can contain. A customer id belonging to someone else returns 404.
-- **Output is schema-forced and then validated anyway.** A response schema cannot
-  guarantee non-empty text, and cannot know which event ids exist — so cited ids are
-  filtered to those actually supplied, and invented ones are reported rather than
-  silently dropped.
-- **Nothing is stored unless validation passes.** A malformed or failed response
-  leaves CRM data untouched.
-- **Confidence is capped by evidence.** A single interaction can only ever be `low`
-  confidence, however clearly it reads. The ceiling is computed from event and channel
-  counts, not requested in the prompt where it could be reasoned away.
-- **Dates are localised before prompting**, so the model never states a calendar date
-  that contradicts the timeline beside it.
-- **Generation is rate limited** to 20 per user per hour, checked before any read or
-  model call.
+4. **Configure the environment**:
 
-### 5. The AI cannot act
+   ```bash
+   cp .env.example .env.local
+   ```
 
-`follow_ups.source` records `manual` or `ai_recommendation`. The value
-`ai_recommendation` is only ever written by the confirmation form — the AI pre-fills a
-title, you edit and submit. A task badged **From OneContext AI** in the app is
-therefore proof that a human accepted it.
+   Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` from Supabase, and
+   `GEMINI_API_KEY` from Google AI Studio. The `VITE_` prefix is what publishes a
+   value to the browser, so the Gemini key must never carry it. The publishable
+   Supabase key is meant to be public — it identifies the project and carries no
+   authority of its own, because RLS decides what it can read.
 
----
+5. **Run the app**:
 
-## Screenshots
+   ```bash
+   npm run dev       # SPA only; /api/insight returns 404
+   npm run dev:api   # vercel dev: SPA plus serverless functions
+   ```
 
-See [`docs/evidence/`](docs/evidence/) for the full set, captured against the deployed
-app.
+   The AI panel needs `dev:api` or the deployed URL, since plain Vite does not serve
+   functions. `npm run build` typechecks both projects and runs 82 tests before
+   building, so a failing test blocks a deploy.
 
-| Screenshot | Shows |
-| --- | --- |
-| [Customer workspace](docs/evidence/day2/phone.png) | Three zones: identity, timeline, AI |
-| [AI insight with sources](docs/evidence/day3/ai%20suggestion.png) | Summary, topics, risks, next action, six cited events |
-| [Thin history](docs/evidence/day3/noa%20summary.png) | One interaction, low confidence, nothing invented |
-| [Confirmed follow-up](docs/evidence/day3/ai%20follow%20up%20noa.png) | Stored task badged *From OneContext AI* |
+## Usage
 
----
+1. Sign in with Google and open a customer from the list.
+2. Use **Add event** to log an interaction on any of the four channels. A phone call
+   additionally records what the customer wanted, the outcome, a status and an
+   optional internal note.
+3. Watch the KPI cards and engagement counts change — every number comes from the
+   rows you just wrote.
+4. Ask OneContext AI one of the three suggested questions. Read the cited events under
+   *Based on*; clicking one jumps to that entry in the timeline.
+5. Press **Create follow-up** to turn the recommendation into a task. The form opens
+   pre-filled and editable; nothing is stored until you submit.
 
-## Running it locally
+Two accounts are worth comparing in the seeded data: Maya Feldman has six
+interactions across all four channels and a churn-risk note, while Noa Shapira has a
+single enquiry — the AI reports low confidence for her and declines to invent a
+history.
 
-### 1. Install
+## Notes
 
-```bash
-npm install
-```
+OneContext is a demonstration of one narrow vertical slice, not a production CRM. The
+four channels are logging forms rather than real integrations: there is no WhatsApp
+Business API, no email ingestion and no telephony, and the interface says so wherever
+a user might assume otherwise. Teams, roles, cross-customer inbox routing, an SLA
+engine and campaign automation are all out of scope, as is any agent that acts without
+confirmation.
 
-### 2. Supabase project and schema
+The design principle throughout is to compute what can be computed and ask a model
+only for what needs interpretation. Counting interactions, deriving active channels
+and bounding confidence by evidence are all deterministic and tested; summarising
+intent and proposing a next step are not, and those are the only jobs the AI is given.
 
-Create a project at [supabase.com](https://supabase.com), then run these in the
-**SQL Editor**, in order:
-
-| File | What it does |
-| --- | --- |
-| [`0001_init.sql`](supabase/migrations/0001_init.sql) | Five tables, indexes, RLS enabled, 20 policies |
-| [`0002_phone_interactions.sql`](supabase/migrations/0002_phone_interactions.sql) | Note↔event link, transactional phone logging |
-| [`0003_phone_internal_note.sql`](supabase/migrations/0003_phone_internal_note.sql) | Optional internal note on a call |
-| [`0004_customer_avatar.sql`](supabase/migrations/0004_customer_avatar.sql) | Optional `avatar_url` |
-
-Optional: [`seed/demo_data.sql`](supabase/seed/demo_data.sql) creates five customers
-with history across all four channels. Safe to re-run — every row it creates is tagged
-`demo` and it only ever deletes rows carrying that tag, so your own data is untouched.
-Remove it with `delete from public.customers where tags ? 'demo';`
-
-### 3. Google sign-in
-
-1. Google Cloud Console → create an **OAuth 2.0 Client ID** (Web application).
-2. Authorised redirect URI: `https://<project-ref>.supabase.co/auth/v1/callback` —
-   copy the exact value from the Supabase Google provider panel.
-3. Supabase → **Authentication → Sign In / Providers → Google**: enable, paste the
-   client ID and secret.
-4. Supabase → **Authentication → URL Configuration**: Site URL
-   `http://localhost:5173`, and add `http://localhost:5173/customers` to redirect
-   URLs. Sign-in fails silently without that second entry, because the client
-   requests it explicitly.
-
-### 4. Environment
-
-```bash
-cp .env.example .env.local
-```
-
-| Variable | Exposed to browser | Source |
-| --- | --- | --- |
-| `VITE_SUPABASE_URL` | yes, by design | Supabase → Project Settings → API |
-| `VITE_SUPABASE_ANON_KEY` | yes, by design | same page — publishable key |
-| `GEMINI_API_KEY` | **no** | Google AI Studio |
-
-The `VITE_` prefix is what publishes a value to the browser. The publishable key is
-meant to be public — it identifies the project and carries no authority of its own;
-RLS decides what it can read. `GEMINI_API_KEY` carries real authority and therefore
-must never take that prefix.
-
-### 5. Run
-
-```bash
-npm run dev       # SPA only — /api/insight returns 404
-npm run dev:api   # vercel dev: SPA plus serverless functions
-```
-
-The AI panel needs `dev:api` (or the deployed URL), since plain Vite does not serve
-functions.
-
-## Scripts
-
-| Script | Purpose |
-| --- | --- |
-| `npm run dev` | Vite dev server on port 5173 |
-| `npm run dev:api` | `vercel dev` — SPA plus functions |
-| `npm run typecheck` | `tsc` over the browser and function projects separately |
-| `npm test` | 82 Vitest tests |
-| `npm run build` | Typecheck both projects, run tests, then build |
-| `npm run preview` | Serve the production build |
-
-`npm run build` runs the tests, so a failing test blocks a deploy rather than
-shipping.
-
----
-
-## Security
-
-Verified against the live deployment:
-
-| Check | Result |
-| --- | --- |
-| Anonymous read, all five tables | `200 []` — RLS returns nothing despite data existing |
-| Anonymous write, all five tables | `401 / 42501` on every one |
-| Phone RPC called anonymously | `401 / 42501` — `SECURITY INVOKER` keeps RLS in force |
-| Cross-account customer via the API | `404`, indistinguishable from missing |
-| Gemini key in the deployed bundle | absent |
-| Key in URL, request body, response, or error | absent |
-| API surface | `GET`→405; no/bad/forged auth→401; missing id→400 |
-| Production dependencies | 0 vulnerabilities |
-
-Layered abuse controls: **20 insights per user per hour** in the function, and a
-Vercel firewall rule limiting `/api/*` to **30 requests per minute per IP** — the
-first bounds model spend by an authenticated account, the second bounds function
-invocations by anyone. Both verified firing.
-
-Known and accepted: signups are open, because "any user can sign in with Google" is a
-project requirement — a stranger gets their own empty workspace, and RLS guarantees
-nothing more. The per-user limit counts stored insights, so a generation that fails
-validation costs a call without counting against it. Ten dev-dependency advisories
-exist in build tooling (`@vercel/node`'s chain); none appear in the shipped bundle and
-production dependencies audit clean.
-
-## Repository layout
-
-```
-api/
-  insight.ts          serverless function: auth, prompt, validation, persistence
-  _shared/insight.ts  the AI contract, its validator and the confidence ceiling
-src/
-  auth/               AuthProvider, useAuth, ProtectedRoute
-  components/
-    customer/         workspace header, lifecycle bar, timeline, KPIs, AI panel
-    customers/        list, filters, create form
-    shell/            top bar, navigation, brand mark
-    states/           loading, empty, error
-    ui/               button, card, badge, field, modal, avatar, icon
-  data/               Supabase queries per table
-  lib/                channels, lifecycle, metrics, timeline merge, formatters
-  pages/              login, customers, workspace, not found
-  styles/             tokens, global, layout, components
-supabase/
-  migrations/         schema, RLS policies, functions
-  seed/               demo data
-docs/evidence/        screenshots per day
-```
-
-Unit tests sit beside the code they cover:
-[`timeline.test.ts`](src/lib/timeline.test.ts),
-[`metrics.test.ts`](src/lib/metrics.test.ts),
-[`_shared/insight.test.ts`](api/_shared/insight.test.ts),
-[`api/insight.test.ts`](api/insight.test.ts).
-
-## Not in scope
-
-Real WhatsApp Business API, email ingestion or telephony integration — the channels
-are logging forms, and the app says so wherever a user might assume otherwise. Also
-out: teams, roles, cross-customer inbox routing, an SLA engine, campaign automation,
-and any autonomous agent that acts without confirmation.
-
-Project artifacts: [GOAL.md](GOAL.md) · [FEATURESPEC.md](FEATURESPEC.md) ·
-[DESIGN-GUIDELINES.md](DESIGN-GUIDELINES.md) · [PLAN.md](PLAN.md)
+Project artifacts: [GOAL.md](GOAL.md), [FEATURESPEC.md](FEATURESPEC.md),
+[DESIGN-GUIDELINES.md](DESIGN-GUIDELINES.md), [PLAN.md](PLAN.md).
