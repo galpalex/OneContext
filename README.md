@@ -31,6 +31,29 @@ metrics are derived from those rows rather than estimated; and OneContext AI rea
 stored history to produce a summary, risks and one recommended action, with the events
 it relied on cited. The recommendation becomes a task only when a human confirms it.
 
+## Stack
+
+- **React 19 + Vite 8 + TypeScript 7** — fast builds and strict types. `tsc` runs
+  over the browser and the serverless function as two separate projects, so browser
+  globals are unavailable in server code by accident.
+- **react-router-dom 7** — route-level code splitting, so the login screen does not
+  ship the customer workspace.
+- **Supabase: Postgres, Auth and Row Level Security** — the reason isolation is
+  enforced by the database rather than by application code. Google OAuth comes with
+  it.
+- **Vercel** — one deploy covers the static SPA and the serverless function, with
+  firewall rules and per-function timeouts configured alongside.
+- **Google Gemini `gemini-3.1-flash-lite`** — fast and cheap for a small prompt, and
+  it supports a forced response schema, which is what makes a structured contract
+  practical. Reached only through a server-side function.
+- **Vitest** — 82 tests over the deterministic logic: the timeline merge, the metric
+  derivations, the AI response validator and the confidence ceiling. `npm run build`
+  runs them, so a failing test blocks a deploy.
+
+Deliberately not used: Next.js, an ORM, a state-management library and a UI kit. The
+app is hand-written TypeScript with CSS design tokens, which keeps the number of
+things that can surprise you small.
+
 ## Architecture & Workflow
 
 ```
