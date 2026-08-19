@@ -57,6 +57,16 @@ export function AiPanel({ customerId, events, request, onCreateFollowUp }: AiPan
   const [confidenceCapped, setConfidenceCapped] = useState(false)
 
   /*
+   * A restored insight is held behind a line rather than rendered.
+   *
+   * Displayed straight away it is indistinguishable from one just generated - same
+   * layout, same confidence badge - so an insight predating newer interactions reads
+   * as current. Collapsed, the panel states its date and lets the user decide, and a
+   * freshly generated insight is never collapsed.
+   */
+  const [restoredCollapsed, setRestoredCollapsed] = useState(false)
+
+  /*
    * Restoring the last stored insight is a background convenience, so it must
    * never overwrite something the user caused. Once a prompt is pressed this is
    * false and a late-arriving restore is discarded: without it, an in-flight
@@ -78,6 +88,7 @@ export function AiPanel({ customerId, events, request, onCreateFollowUp }: AiPan
         if (stored) {
           setInsight(stored.insight)
           setGeneratedAt(stored.created_at)
+          setRestoredCollapsed(true)
           setStatus('ready')
         } else {
           setStatus('idle')
@@ -102,6 +113,7 @@ export function AiPanel({ customerId, events, request, onCreateFollowUp }: AiPan
       setError(null)
       setDroppedIds([])
       setConfidenceCapped(false)
+      setRestoredCollapsed(false)
 
       try {
         const result = await generateInsight(customerId, focus)
@@ -210,7 +222,24 @@ export function AiPanel({ customerId, events, request, onCreateFollowUp }: AiPan
             </p>
           ) : null}
 
-          {insight && !generating ? (
+          {insight && restoredCollapsed && !generating ? (
+            <div className="oc-insight__stored">
+              <p className="oc-meta">
+                An insight from {formatDateTime(generatedAt) ?? 'an earlier session'} is stored.
+                It may predate newer interactions.
+              </p>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setRestoredCollapsed(false)}
+                iconLeft={<Icon name="sparkle" size={13} />}
+              >
+                Show it
+              </Button>
+            </div>
+          ) : null}
+
+          {insight && !restoredCollapsed && !generating ? (
             <div className="oc-insight">
               <div className="oc-row">
                 <Badge tone={CONFIDENCE_TONE[insight.confidence]} srPrefix="Confidence">
