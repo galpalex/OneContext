@@ -12,6 +12,9 @@ merged timeline, and an AI recommendation that cannot write to the CRM on its ow
 account. A new account starts empty; the seeded walkthrough data belongs to the
 owner's account, because Row Level Security scopes every row to the user who created
 it.
+
+[Watch the OneContext demo on YouTube](https://youtu.be/4YgjXnTweKk)
+
 ## Presentation
 [Check out the presentation](https://github.com/galpalex/OneContext/blob/main/docs/evidence/OneContext%20presentation.pdf)
 ## Screenshots
