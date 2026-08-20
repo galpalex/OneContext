@@ -13,7 +13,7 @@ account. A new account starts empty; the seeded walkthrough data belongs to the
 owner's account, because Row Level Security scopes every row to the user who created
 it.
 ## Presentation
-[Check out presentation](https://github.com/galpalex/OneContext/blob/main/docs/evidence/OneContext%20presentation.pdf)
+[Check out the presentation](https://github.com/galpalex/OneContext/blob/main/docs/evidence/OneContext%20presentation.pdf)
 ## Screenshots
 
 ![Customer workspace with a OneContext AI insight](docs/evidence/day3/ai%20suggestion.png)
